@@ -1,4 +1,7 @@
 import 'phaser';
+import { predefinedStars, MyStar } from './star.js';
+import { MySpike, predefinedspikes } from './spike.js';
+
 interface PathPoint {
     x: number;
     y: number;
@@ -29,6 +32,10 @@ export default class Level1Scene extends Phaser.Scene {
 
     private recentLabels: Phaser.GameObjects.Text[] = [];
     private maxLabels = 5;
+
+    private playlist: string[] = ['track1', 'track2'];
+    private currentTrackIndex: number = 0;
+    private music!: Phaser.Sound.BaseSound;
 
     private milestones = [
         { year: "1993 - 2009", city: "Tarnow", description: "Early life", x: 200 },
@@ -61,13 +68,14 @@ export default class Level1Scene extends Phaser.Scene {
         this.load.image('boxAlt', '/assets/sprites/Platformer Art Complete Pack/Base pack/Tiles/boxAlt.png');
         this.load.image('star', '/assets/sprites/Platformer Art Complete Pack/Base pack/Items/star.png');
 
+        this.load.audio('track1', 'assets/audio/track1.mp3');
+        this.load.audio('track2', 'assets/audio/track2.mp3');
+        this.load.audio('star_sound', 'assets/audio/star.mp3');
     }
 
     create() {
         const h = this.cameras.main.height;
         const tile = 70;
-
-
 
         this.isRespawning = false;
         this.cameras.main.setBackgroundColor('#6db3f2');
@@ -115,7 +123,7 @@ export default class Level1Scene extends Phaser.Scene {
         this.wasd = this.input.keyboard.addKeys('W,A,S,D,SPACE');
 
         this.ground = this.physics.add.staticGroup();
-        this.spikes = this.physics.add.staticGroup();
+
 
         this.boxes = this.physics.add.staticGroup();
         const boxXs = [800, 1600, 2400, 3200, 4200, 5200, 6200, 7200];
@@ -124,88 +132,9 @@ export default class Level1Scene extends Phaser.Scene {
             this.boxes.create(bx, h - tile - tile / 2, key).setDisplaySize(tile, tile).refreshBody();
         });
 
-
-        const gaps = [{ start: 2500, width: 2 }, { start: 5000, width: 3 }];
-        for (let x = 0; x < this.worldWidth; x += tile) {
-            if (gaps.some(g => x >= g.start && x < g.start + g.width * tile)) {
-                this.spikes.create(x + tile / 2, h - tile / 2, 'spikes').setDisplaySize(tile, tile).refreshBody();
-                continue;
-            }
-            this.ground.create(x + tile / 2, h - tile / 2, 'grassMid').setDisplaySize(tile, tile).refreshBody();
-        }
-
-
-        this.stars = this.physics.add.group({ allowGravity: false });
-
-        class MyStar {
-            dx: number;
-            label: string;
-
-            constructor(label: string, dx: number = 200) {
-                this.dx = dx;
-                this.label = label;
-            }
-        };
-
-        let prevStarX = 0;
-        [
-            new MyStar("Basics of DOS", 800),
-            new MyStar("Basics of Pascal"),
-            new MyStar("Basics of Assembler - 13h"),
-            new MyStar("Basics of electronics"),
-            // ---
-            new MyStar("Basics of C++", 800),
-            new MyStar("Basics of algorithms"),
-            new MyStar("Basics of networks"),
-            new MyStar("HTML & CSS"),
-            new MyStar("Basics of PHP"),
-            // ---
-            new MyStar("Data structures and algorithms", 800),
-            new MyStar("C"),
-            new MyStar("C++"),
-            new MyStar("C#"),
-            new MyStar("Java"),
-            new MyStar("Embedded programming"),
-            new MyStar("English C1"),
-            new MyStar("Android"),
-            new MyStar("PHP"),
-            new MyStar("Basics of AI"),
-            new MyStar("Linux"),
-            new MyStar("Databases"),
-            // ---
-            new MyStar("Advanced PHP", 500),
-            new MyStar("Advanced JavaScript",),
-            new MyStar("Docker"),
-            new MyStar("NodeJS"),
-            new MyStar("MongoDB"),
-            new MyStar("Spanish A2+"),
-            // ---
-            new MyStar("Advanced UML & OCL", 500),
-            new MyStar("AI"),
-            new MyStar("Parallel computing"),
-            new MyStar("Testing"),
-            new MyStar("Language processing"),
-            // ---
-            new MyStar("Advanced PHP", 1000),
-            new MyStar("Advanced MySQL"),
-            new MyStar("Big Data"),
-            new MyStar("Advanced Linux"),
-            new MyStar("Python"),
-            new MyStar("Queues"),
-            // ---
-            new MyStar("Advanced PHP"),
-            new MyStar("Advanced SQL"),
-            new MyStar("Advanced Python"),
-            new MyStar("Advanced Docker"),
-
-
-
-        ].forEach((myStar, i) => {
-            prevStarX += myStar.dx;
-            const star = this.stars.create(prevStarX, h - tile - 120, 'star').setScale(1.5);
-            const label = this.add.text(prevStarX, h - tile - 170, myStar.label, { fontSize: '18px', color: '#fff', stroke: '#000', strokeThickness: 2 }).setOrigin(0.5).setAlpha(0.5);
-            star.setData('label', label);
-        });
+        this.spikes = this.physics.add.staticGroup();
+        this.createSpikes(predefinedspikes, h, tile);
+        this.createStars(predefinedStars, h, tile);
 
         this.player = this.physics.add.sprite(150, h - 200, 'player').setScale(3);
         this.player.setCollideWorldBounds(true);
@@ -241,9 +170,124 @@ export default class Level1Scene extends Phaser.Scene {
         this.physics.add.overlap(this.player, this.spikes, this.handleDeath, undefined, this);
 
         this.cameras.main.startFollow(this.player, true, 0.1, 0.1);
+        this.playNextTrack();
+    }
+
+    private playNextTrack() {
+        const trackKey = this.playlist[this.currentTrackIndex];
+        if (trackKey) {
+            this.music = this.sound.add(trackKey, { volume: 0.5 });
+
+            this.music.once('complete', () => {
+                this.currentTrackIndex = (this.currentTrackIndex + 1) % this.playlist.length;
+                this.playNextTrack();
+            });
+
+            this.music.play();
+        }
+    }
+
+
+    private createStars(predefinedStars: MyStar[], h: number, tile: number) {
+        this.stars = this.physics.add.group({ allowGravity: false });
+
+        let prevStarX = 0;
+        predefinedStars.forEach(myStar => {
+            prevStarX += myStar.dx;
+            const star = this.stars.create(prevStarX, h - tile - 120, 'star').setScale(1.5);
+            const label = this.add.text(prevStarX, h - tile - 170, myStar.label,
+                {
+                    fontSize: '18px',
+                    color: '#fff',
+                    stroke: '#000',
+                    strokeThickness: 0
+                })
+                .setOrigin(0.5)
+                .setAlpha(0.6);
+            star.setData('label', label);
+
+            this.tweens.add({
+                targets: star,
+                y: star.y - 15,
+                scale: { from: 1, to: 1.2 },
+                duration: 1500,
+                ease: 'Sine.easeInOut',
+                yoyo: true,
+                repeat: -1
+            });
+
+            this.tweens.add({
+                targets: star,
+                angle: { from: -5, to: 5 },
+                duration: 1000,
+                ease: 'Sine.easeInOut',
+                yoyo: true,
+                repeat: -1
+            });
+        });
+    }
+
+    private createSpikes(predefinedSpikes: MySpike[], h: number, tile: number): void {
+        const spikePositions = new Set<number>();
+        let prevSpikeX = 0;
+
+        predefinedSpikes.forEach(mySpike => {
+            prevSpikeX += mySpike.dx;
+            const snappedX = Math.floor(prevSpikeX / tile) * tile + tile / 2;
+            spikePositions.add(snappedX);
+            spikePositions.add(snappedX + tile);
+
+            const spike = this.spikes.create(snappedX, h - tile / 2, 'spikes')
+                .setDisplaySize(tile, tile)
+                .refreshBody();
+            const spike2 = this.spikes.create(snappedX + tile, h - tile / 2, 'spikes')
+                .setDisplaySize(tile, tile)
+                .refreshBody();
+
+            const label = this.add.text(snappedX + tile / 4, h - tile - 60, mySpike.label, {
+                fontSize: '20px',
+                fontFamily: 'Arial',
+                color: '#ff0000',
+                stroke: '#000000',
+                strokeThickness: 8,
+                align: 'center'
+            })
+                .setAlpha(0.5);
+
+            this.tweens.add({
+                targets: label,
+                y: label.y - 15,
+                duration: 1000,
+                ease: 'Sine.easeInOut',
+                yoyo: true,
+                repeat: -1
+            });
+
+            this.tweens.add({
+                targets: label,
+                angle: { from: -3, to: 3 },
+                duration: 500,
+                ease: 'Sine.easeInOut',
+                yoyo: true,
+                repeat: -1
+            });
+
+            spike.setData('label', label);
+        });
+
+        for (let x = 0; x < this.worldWidth; x += tile) {
+            const currentX = x + tile / 2;
+
+            if (!spikePositions.has(currentX)) {
+                this.ground.create(currentX, h - tile / 2, 'grassMid')
+                    .setDisplaySize(tile, tile)
+                    .refreshBody();
+            }
+        }
     }
 
     collectstar(player: any, star: Phaser.Physics.Arcade.Sprite): void {
+        this.sound.play('star_sound', { volume: 0.6 });
         const label = star.getData('label') as Phaser.GameObjects.Text;
 
         if (label) {

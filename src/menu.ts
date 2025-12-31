@@ -40,15 +40,23 @@ export default class MenuScene extends Phaser.Scene {
             this.scene.start('Level1Scene');
         });
 
-        this.add.text(600, 450, 'Use Arrow Keys or WASD to move\nPress SPACE or W to jump', {
+        const creditsButton = this.add.rectangle(600, 420, 200, 40, 0x4a90e2)
+            .setInteractive({ useHandCursor: true });
+
+        const creditsText = this.add.text(600, 420, 'CREDITS', {
+            fontSize: '18px',
+            color: '#ffffff'
+        }).setOrigin(0.5);
+
+        creditsButton.on('pointerover', () => creditsButton.setFillStyle(0x5ba3ff));
+        creditsButton.on('pointerout', () => creditsButton.setFillStyle(0x4a90e2));
+        creditsButton.on('pointerdown', () => this.scene.start('CreditsScene'));
+
+        this.add.text(600, 550, 'Use Arrow Keys or WASD to move\nPress SPACE or W to jump', {
             fontSize: '18px',
             color: '#888888',
             align: 'center'
         }).setOrigin(0.5);
 
-        this.add.text(600, 550, 'Press ESC to return to menu', {
-            fontSize: '14px',
-            color: '#666666'
-        }).setOrigin(0.5);
     }
 }
