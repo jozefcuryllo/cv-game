@@ -14,6 +14,7 @@ export default class Level1Scene extends Phaser.Scene {
     private catNameText!: Phaser.GameObjects.Text;
     private cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
     private wasd!: any;
+    private esc!: any;
 
     private ground!: Phaser.Physics.Arcade.StaticGroup;
     private spikes!: Phaser.Physics.Arcade.StaticGroup;
@@ -57,6 +58,12 @@ export default class Level1Scene extends Phaser.Scene {
     }
 
     preload() {
+        const loadingText = this.add.text(this.cameras.main.centerX, this.cameras.main.centerY, 'LOADING...', {
+            fontSize: '48px',
+            fontFamily: 'Arial',
+            color: '#ffffff'
+        }).setOrigin(0.5);
+
         this.load.spritesheet('player', '/assets/sprites/maleBase/full/advnt_full.png', { frameWidth: 32, frameHeight: 64 });
         this.load.spritesheet('cat', '/assets/sprites/cat sprite/catspritesx4_no_bg.gif', { frameWidth: 84, frameHeight: 68 });
 
@@ -71,9 +78,14 @@ export default class Level1Scene extends Phaser.Scene {
         this.load.audio('track1', 'assets/audio/track1.mp3');
         this.load.audio('track2', 'assets/audio/track2.mp3');
         this.load.audio('star_sound', 'assets/audio/star.mp3');
+        
+        this.load.on('complete', function () {
+                loadingText.destroy()
+            });
     }
 
     create() {
+        
         const h = this.cameras.main.height;
         const tile = 70;
 
@@ -121,6 +133,7 @@ export default class Level1Scene extends Phaser.Scene {
 
         this.cursors = this.input.keyboard.createCursorKeys();
         this.wasd = this.input.keyboard.addKeys('W,A,S,D,SPACE');
+        this.esc = this.input.keyboard.addKeys('ESC');
 
         this.ground = this.physics.add.staticGroup();
 
@@ -166,11 +179,26 @@ export default class Level1Scene extends Phaser.Scene {
         this.scoreText = this.add.text(20, 20, 'Score: 0', { fontSize: '20px', color: '#FFF' }).setScrollFactor(0);
         this.physics.add.collider(this.player, this.ground);
         this.physics.add.collider(this.player, this.boxes);
-        this.physics.add.overlap(this.player, this.stars, this.collectstar, undefined, this);
+        this.physics.add.overlap(this.player, this.stars, this.collectStar, undefined, this);
         this.physics.add.overlap(this.player, this.spikes, this.handleDeath, undefined, this);
 
         this.cameras.main.startFollow(this.player, true, 0.1, 0.1);
         this.playNextTrack();
+
+        this.input.keyboard.on('keydown-M', () => {
+            this.sound.mute = !this.sound.mute;
+
+            const status = !this.sound.mute ? 'MUTED' : 'UNMUTED';
+            const indicator = this.add.text(this.cameras.main.width / 2, 50, status, {
+                fontSize: '24px',
+                color: '#ff4444',
+                fontStyle: 'bold',
+                stroke: '#000000',
+                strokeThickness: 4
+            }).setOrigin(0.5).setScrollFactor(0);
+
+            this.time.delayedCall(1000, () => indicator.destroy());
+        });
     }
 
     private playNextTrack() {
@@ -240,19 +268,22 @@ export default class Level1Scene extends Phaser.Scene {
             const spike = this.spikes.create(snappedX, h - tile / 2, 'spikes')
                 .setDisplaySize(tile, tile)
                 .refreshBody();
-            const spike2 = this.spikes.create(snappedX + tile, h - tile / 2, 'spikes')
+            this.spikes.create(snappedX + tile, h - tile / 2, 'spikes')
                 .setDisplaySize(tile, tile)
                 .refreshBody();
 
-            const label = this.add.text(snappedX + tile / 4, h - tile - 60, mySpike.label, {
-                fontSize: '20px',
-                fontFamily: 'Arial',
-                color: '#ff0000',
-                stroke: '#000000',
-                strokeThickness: 8,
-                align: 'center'
-            })
-                .setAlpha(0.5);
+            const label = this.add.text(snappedX + tile / 2, h - tile - 60,
+                mySpike.label,
+                {
+                    fontSize: '20px',
+                    fontFamily: 'Arial',
+                    color: '#ff0000',
+                    stroke: '#000000',
+                    strokeThickness: 0,
+                    align: 'center'
+                })
+                .setOrigin(0.5)
+                .setAlpha(0.9);
 
             this.tweens.add({
                 targets: label,
@@ -286,7 +317,7 @@ export default class Level1Scene extends Phaser.Scene {
         }
     }
 
-    collectstar(player: any, star: Phaser.Physics.Arcade.Sprite): void {
+    collectStar(player: any, star: Phaser.Physics.Arcade.Sprite): void {
         this.sound.play('star_sound', { volume: 0.6 });
         const label = star.getData('label') as Phaser.GameObjects.Text;
 
@@ -349,9 +380,13 @@ export default class Level1Scene extends Phaser.Scene {
     }
 
     update() {
+        if (this.esc.ESC.isDown) {
+            this.music.stop();
+            this.scene.stop();
+            this.scene.start('MenuScene');
+        }
+
         if (this.isRespawning) return;
-
-
 
         const body = this.player.body as Phaser.Physics.Arcade.Body;
         const accel = 1000;
@@ -478,16 +513,12 @@ export default class Level1Scene extends Phaser.Scene {
         }
     }
 
-
-
     createAnimations() {
         if (this.anims.exists('idle')) return;
         this.anims.create({ key: 'idle', frames: [{ key: 'player', frame: 0 }], frameRate: 1 });
         this.anims.create({ key: 'walk', frames: this.anims.generateFrameNumbers('player', { start: 1, end: 6 }), frameRate: 12, repeat: -1 });
         this.anims.create({ key: 'jump', frames: this.anims.generateFrameNumbers('player', { start: 17, end: 19 }), frameRate: 10 });
         this.anims.create({ key: 'crouch', frames: this.anims.generateFrameNumbers('player', { start: 7, end: 9 }), frameRate: 6, repeat: -1 });
-
-
     }
 
     createCatAnimations() {
