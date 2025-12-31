@@ -10,6 +10,7 @@ const config: Phaser.Types.Core.GameConfig = {
     dom: {
         createContainer: true
     },
+    pixelArt: true,
     backgroundColor: '#1a1a1a',
     physics: {
         default: 'arcade',
