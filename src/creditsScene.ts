@@ -26,6 +26,7 @@ export default class Credits extends Phaser.Scene {
                 <p><b>GRAPHICS:</b></p>
                 <p>Main character - <a href="https://opengameart.org/content/mv-platformer-male-32x64">https://opengameart.org/content/mv-platformer-male-32x64</a></p>
                 <p>Cat - Shepardskin - <a href="https://twitter.com/Shepardskin">https://twitter.com/Shepardskin</a></p>
+                <p>Pipe organ - AI
                 <p>Everything else - Platformer Art Complete Pack - <a href="https://Kenney.nl">Kenney.nl</a></p>
                 <br>
                 <p>THANK YOU FOR PLAYING!</p>

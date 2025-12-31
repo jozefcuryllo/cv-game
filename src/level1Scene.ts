@@ -1,5 +1,6 @@
 import 'phaser';
 import { predefinedSpikes, predefinedStars } from './level1_config.js';
+import { BaseScene } from './baseScene.js';
 
 interface PathPoint {
     x: number;
@@ -7,39 +8,30 @@ interface PathPoint {
     anim: string;
     flipX: boolean;
 }
-export default class Level1Scene extends Phaser.Scene {
-    private player!: Phaser.Physics.Arcade.Sprite;
-    private cat!: Phaser.Physics.Arcade.Sprite;
-    private catNameText!: Phaser.GameObjects.Text;
-    private cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
-    private wasd!: any;
-    private esc!: any;
+export default class Level1Scene extends BaseScene {
 
-    private ground!: Phaser.Physics.Arcade.StaticGroup;
-    private spikes!: Phaser.Physics.Arcade.StaticGroup;
-    private stars!: Phaser.Physics.Arcade.Group;
-    private boxes!: Phaser.Physics.Arcade.StaticGroup;
+    protected cat!: Phaser.Physics.Arcade.Sprite;
+    protected catNameText!: Phaser.GameObjects.Text;
 
-    private score = 0;
-    private scoreText!: Phaser.GameObjects.Text;
-    private isRespawning = false;
-    private worldWidth = 20000;
+    protected ground!: Phaser.Physics.Arcade.StaticGroup;
+    protected spikes!: Phaser.Physics.Arcade.StaticGroup;
+    protected stars!: Phaser.Physics.Arcade.Group;
+    protected boxes!: Phaser.Physics.Arcade.StaticGroup;
 
-    private playerHistory: PathPoint[] = [];
-    private historyLength: number = 20;
-    private catSpawned: boolean = false;
-    private catArrivesAtX = 13000;
+    protected isRespawning = false;
+    protected worldWidth = 20000;
 
-    private recentLabels: Phaser.GameObjects.Text[] = [];
-    private maxLabels = 5;
+    protected playerHistory: PathPoint[] = [];
+    protected historyLength: number = 20;
+    protected catSpawned: boolean = false;
+    protected catArrivesAtX = 13000;
 
-    private playlist: string[] = ['track1', 'track2'];
-    private currentTrackIndex: number = 0;
-    private music!: Phaser.Sound.BaseSound;
+    protected recentLabels: Phaser.GameObjects.Text[] = [];
+    protected maxLabels = 5;
 
-    private tile: integer = 70;
+    protected playlist: string[] = ['track1', 'track2'];
 
-    private milestones = [
+    protected milestones = [
         { year: "1993 - 2009", city: "Tarnow", description: "Early life", x: 200 },
         { year: "2009 - 2012", city: "Tarnow", description: "Highschool - computer science specialisation", x: 2000 },
         { year: "2012 - 2015", city: "Krakow (Cracow)", description: "Tadeusz Kosciuszko University - BSc (inzynier) - computer science", x: 3500 },
@@ -59,6 +51,8 @@ export default class Level1Scene extends Phaser.Scene {
     }
 
     preload() {
+        super.preload();
+
         const loadingText = this.add.text(this.cameras.main.centerX, this.cameras.main.centerY, 'LOADING...', {
             fontSize: '48px',
             fontFamily: 'Arial',
@@ -67,7 +61,6 @@ export default class Level1Scene extends Phaser.Scene {
 
         this.load.text('levelData', 'assets/level.txt');
 
-        this.load.spritesheet('player', '/assets/sprites/maleBase/full/advnt_full.png', { frameWidth: 32, frameHeight: 64 });
         this.load.spritesheet('cat', '/assets/sprites/cat sprite/catspritesx4_no_bg.gif', { frameWidth: 84, frameHeight: 68 });
 
         this.load.image('grassMid', '/assets/sprites/Platformer Art Complete Pack/Base pack/Tiles/grassMid.png');
@@ -87,6 +80,21 @@ export default class Level1Scene extends Phaser.Scene {
         this.load.image('cloud2', '/assets/sprites/Platformer Art Complete Pack/Base pack/Items/cloud2.png');
         this.load.image('cloud3', '/assets/sprites/Platformer Art Complete Pack/Base pack/Items/cloud3.png');
 
+        const path = '/assets/sprites/Platformer Art Complete Pack/Buildings expansion/Tiles/';
+        const files = [
+            'doorKnob', 'doorOpen', 'doorOpenTop', 'doorTop',
+            'houseBeige', 'houseBeigeAlt', 'houseBeigeAlt2',
+            'houseBeigeBottomLeft', 'houseBeigeBottomMid', 'houseBeigeBottomRight',
+            'houseBeigeMidLeft', 'houseBeigeMidRight',
+            'houseBeigeTopLeft', 'houseBeigeTopMid', 'houseBeigeTopRight',
+            'roofRedLeft', 'roofRedMid', 'roofRedRight',
+            'roofRedTopLeft', 'roofRedTopMid', 'roofRedTopRight',
+            'windowCheckered'
+        ];
+
+        files.forEach(file => {
+            this.load.image(file, `${path}${file}.png`);
+        });
         this.load.audio('track1', 'assets/audio/track1.mp3');
         this.load.audio('track2', 'assets/audio/track2.mp3');
         this.load.audio('star_sound', 'assets/audio/star.mp3');
@@ -100,14 +108,11 @@ export default class Level1Scene extends Phaser.Scene {
 
         const h = this.cameras.main.height;
 
-        this.isRespawning = false;
         this.cameras.main.setBackgroundColor('#6db3f2');
         this.physics.world.setBounds(0, 0, this.worldWidth, h + 200);
         this.cameras.main.setBounds(0, 0, this.worldWidth, h);
 
-        this.cursors = this.input.keyboard.createCursorKeys();
-        this.wasd = this.input.keyboard.addKeys('W,A,S,D,SPACE');
-        this.esc = this.input.keyboard.addKeys('ESC');
+        this.createPlayer(150, h - 200);
 
         this.ground = this.physics.add.staticGroup();
         this.boxes = this.physics.add.staticGroup();
@@ -146,20 +151,14 @@ export default class Level1Scene extends Phaser.Scene {
 
         this.createTreesAndBushes();
         this.createClouds();
-
-        this.player = this.physics.add.sprite(150, h - 200, 'player').setScale(3);
-        this.player.setCollideWorldBounds(true);
-        this.player.body.setGravityY(1200);
-        this.player.setDragX(1500);
-        this.player.setMaxVelocity(400, 1000);
-        this.player.body?.setSize(12,64);
-
+        this.createBuilding(500, h - 2 * this.tile);
 
         this.cat = this.physics.add.sprite(100, h - 200, 'cat');
         this.cat.setFlipX(true);
         this.cat.body.setAllowGravity(false);
         this.cat.setScale(0);
         this.cat.setAlpha(0);
+        this.cat.setDepth(101);
 
         this.catNameText = this.add.text(0, 0, 'Migotka!', {
             fontFamily: 'Arial',
@@ -171,36 +170,20 @@ export default class Level1Scene extends Phaser.Scene {
         this.catNameText.setOrigin(0.5);
         this.catNameText.setVisible(false);
 
-
-        this.createAnimations();
         this.createCatAnimations();
 
-        this.scoreText = this.add.text(20, 20, 'Score: 0', { fontSize: '20px', color: '#FFF' }).setScrollFactor(0);
         this.physics.add.collider(this.player, this.ground);
         this.physics.add.collider(this.player, this.boxes);
         this.physics.add.overlap(this.player, this.stars, this.collectStar, undefined, this);
         this.physics.add.overlap(this.player, this.spikes, this.handleDeath, undefined, this);
 
-        this.cameras.main.startFollow(this.player, true, 0.1, 0.1);
+
+        if(false){
         this.playNextTrack();
-
-        this.input.keyboard.on('keydown-M', () => {
-            this.sound.mute = !this.sound.mute;
-
-            const status = !this.sound.mute ? 'MUTED' : 'UNMUTED';
-            const indicator = this.add.text(this.cameras.main.width / 2, 50, status, {
-                fontSize: '24px',
-                color: '#ff4444',
-                fontStyle: 'bold',
-                stroke: '#000000',
-                strokeThickness: 4
-            }).setOrigin(0.5).setScrollFactor(0);
-
-            this.time.delayedCall(1000, () => indicator.destroy());
-        });
+        }
     }
 
-    private createTreesAndBushes() {
+    protected createTreesAndBushes() {
         const h = this.cameras.main.height;
         const groundY = h - this.tile;
 
@@ -228,7 +211,7 @@ export default class Level1Scene extends Phaser.Scene {
 
     }
 
-    private createClouds() {
+    protected createClouds() {
         const cloudKeys = ['cloud1', 'cloud2', 'cloud3'];
 
         for (let i = 0; i < 30; i++) {
@@ -240,26 +223,109 @@ export default class Level1Scene extends Phaser.Scene {
             this.add.image(x, y, key)
                 .setScale(Phaser.Math.FloatBetween(0.5, 1.2))
                 .setAlpha(Phaser.Math.FloatBetween(0.4, 0.7))
-                .setDepth(-1)
+                .setDepth(-3)
                 .setScrollFactor(scrollFactor);
         }
     }
 
-    private playNextTrack() {
-        const trackKey = this.playlist[this.currentTrackIndex];
-        if (trackKey) {
-            this.music = this.sound.add(trackKey, { volume: 0.5 });
 
-            this.music.once('complete', () => {
-                this.currentTrackIndex = (this.currentTrackIndex + 1) % this.playlist.length;
-                this.playNextTrack();
-            });
 
-            this.music.play();
+    protected createBuilding(x: number, y: number) {
+        const tile = this.tile;
+        const width = 7;
+        const height = 5;
+        const doorCol = 1;
+
+        for (let col = -1; col <= width; col++) {
+            const roofX = x + (col * tile);
+            const roofBaseY = y - (height * tile);
+
+            let topKey = 'roofRedTopMid';
+            let midKey = 'roofRedMid';
+
+            if (col === -1) {
+                topKey = 'roofRedTopRight';
+                midKey = 'roofRedRight';
+            } else if (col === width) {
+                topKey = 'roofRedTopLeft';
+                midKey = 'roofRedLeft';
+
+            }
+
+            this.add.image(roofX, roofBaseY - tile, topKey).setOrigin(0).setDepth(-1);
+            this.add.image(roofX, roofBaseY, midKey).setOrigin(0).setDepth(-1);
         }
+
+        for (let row = 0; row < height; row++) {
+            for (let col = 0; col < width; col++) {
+                const posX = x + (col * tile);
+                const posY = y - ((height - 1 - row) * tile);
+                let key = 'houseBeige';
+
+                if (row === 0) {
+                    if (col === 0) key = 'houseBeigeTopLeft';
+                    else if (col === width - 1) key = 'houseBeigeTopRight';
+                    else key = 'houseBeigeTopMid';
+                } else if (row === height - 1) {
+                    if (col === 0) key = 'houseBeigeBottomLeft';
+                    else if (col === width - 1) key = 'houseBeigeBottomRight';
+                    else key = 'houseBeigeBottomMid';
+                } else {
+                    if (col === 0) key = 'houseBeigeMidLeft';
+                    else if (col === width - 1) key = 'houseBeigeMidRight';
+                }
+
+                this.add.image(posX, posY, key)
+                    .setOrigin(0)
+                    .setDepth(0);
+            }
+        }
+
+        const dX = x + (doorCol * tile);
+
+
+        this.add.image(dX + 2 * tile, y + tile / 2 - 2 * tile, 'doorTop')
+            .setOrigin(0.5)
+            .setScale(1.5, 1.5)
+            .setDepth(0);
+        this.add.image(dX + 2 * tile, y, 'doorKnob')
+            .setOrigin(0.5)
+            .setScale(1.5, 1.5)
+            .setDepth(0);
+
+        this.add.image(dX + 1, y - 3 * tile, 'windowCheckered')
+            .setOrigin(0.5)
+            .setDepth(0);
+
+        this.add.image(dX + 2.5 * tile, y - 3 * tile, 'windowCheckered')
+            .setOrigin(0.5)
+            .setDepth(0);
+
+        this.add.image(dX + 5 * tile, y - 3 * tile, 'windowCheckered')
+            .setOrigin(0.5)
+            .setDepth(0);
+
+
+        const doorTrigger = this.add.rectangle(
+            dX + 2 * tile,
+            y,
+            tile * 1,
+            tile * 2,
+            0x000000,
+            0
+        );
+        this.physics.add.existing(doorTrigger, true);
+
+        const enterKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.E);
+        const upKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.UP);
+        this.physics.add.overlap(this.player, doorTrigger, () => {
+            if (Phaser.Input.Keyboard.JustDown(enterKey) || Phaser.Input.Keyboard.JustDown(upKey)) {
+                this.scene.switch('ChurchScene');
+            }
+        }, undefined, this);
     }
 
-    private createMilestone(x: number, index: number) {
+    protected createMilestone(x: number, index: number) {
         const milestone = this.milestones[index];
         if (!milestone) return;
         this.add.text(
@@ -294,7 +360,7 @@ export default class Level1Scene extends Phaser.Scene {
             .setDepth(-2);
     }
 
-    private createGround(x: number, y: number) {
+    protected createGround(x: number, y: number) {
         const ground = this.ground.create(x, y, 'grassMid')
             .setDisplaySize(this.tile, this.tile)
             .setScale(0.5)
@@ -304,13 +370,13 @@ export default class Level1Scene extends Phaser.Scene {
         ground.refreshBody();
     }
 
-    private createBox(x: number, y: number) {
+    protected createBox(x: number, y: number) {
         this.boxes.create(x, y, "box")
             .setDisplaySize(this.tile, this.tile)
             .refreshBody();
     }
 
-    private createStar(x: number, y: number, index: number) {
+    protected createStar(x: number, y: number, index: number) {
 
         const star = this.stars.create(x, y, 'star')
             .setScale(1.5);
@@ -349,7 +415,7 @@ export default class Level1Scene extends Phaser.Scene {
 
     }
 
-    private createSpike(x: number, y: number, index: number) {
+    protected createSpike(x: number, y: number, index: number) {
         const mySpike = predefinedSpikes[index];
         if (!mySpike) return;
 
@@ -415,7 +481,7 @@ export default class Level1Scene extends Phaser.Scene {
         this.scoreText.setText(`Score: ${this.score}`);
     }
 
-    private addLabelToList(content: string): void {
+    protected addLabelToList(content: string): void {
         const startX = 20;
         const startY = 80;
         const spacing = 22;
@@ -447,9 +513,7 @@ export default class Level1Scene extends Phaser.Scene {
     }
 
     handleDeath() {
-        if (this.isRespawning) return;
-        this.isRespawning = true;
-
+        super.handleDeath();
         this.playerHistory = [];
 
         this.player.setTint(0xff0000);
@@ -457,60 +521,7 @@ export default class Level1Scene extends Phaser.Scene {
     }
 
     update() {
-        if (this.esc.ESC.isDown) {
-            this.music.stop();
-            this.scene.stop();
-            this.scene.start('MenuScene');
-        }
-
-        if (this.isRespawning) return;
-
-        const body = this.player.body as Phaser.Physics.Arcade.Body;
-        const accel = 1000;
-
-        if (this.player.y > this.cameras.main.height + 50) {
-            this.handleDeath();
-            return;
-        }
-
-        const isCrouchKeyDown = this.cursors.down.isDown || this.wasd.S.isDown;
-        const isCrouching = isCrouchKeyDown && body.blocked.down;
-
-        if (isCrouching) {
-            body.setAccelerationX(0);
-            body.setDragX(500);
-        } else {
-            body.setDragX(1500);
-
-            if (this.cursors.left.isDown || this.wasd.A.isDown) {
-                body.setAccelerationX(-accel);
-                this.player.flipX = true;
-            } else if (this.cursors.right.isDown || this.wasd.D.isDown) {
-                body.setAccelerationX(accel);
-                this.player.flipX = false;
-            } else {
-                body.setAccelerationX(0);
-            }
-        }
-
-        const jumpPressed =
-            Phaser.Input.Keyboard.JustDown(this.cursors.up) ||
-            Phaser.Input.Keyboard.JustDown(this.wasd.W) ||
-            Phaser.Input.Keyboard.JustDown(this.wasd.SPACE);
-
-        const jumpReleased =
-            Phaser.Input.Keyboard.JustUp(this.cursors.up) ||
-            Phaser.Input.Keyboard.JustUp(this.wasd.W) ||
-            Phaser.Input.Keyboard.JustUp(this.wasd.SPACE);
-
-        if (jumpPressed && body.blocked.down) {
-            body.setVelocityY(-700);
-
-        }
-
-        if (jumpReleased && body.velocity.y < 0) {
-            body.setVelocityY(body.velocity.y * 0.4);
-        }
+        super.update();
 
         this.playerHistory.unshift({
             x: this.player.x,
@@ -575,27 +586,7 @@ export default class Level1Scene extends Phaser.Scene {
             });
         }
 
-        this.playAnimations(body, isCrouching);
-    }
 
-    playAnimations(body: Phaser.Physics.Arcade.Body, isCrouching: boolean) {
-        if (!body.blocked.down) {
-            this.player.anims.play('jump', true);
-        } else if (isCrouching) {
-            this.player.anims.play('crouch', true);
-        } else if (Math.abs(body.velocity.x) > 20) {
-            this.player.anims.play('walk', true);
-        } else {
-            this.player.anims.play('idle', true);
-        }
-    }
-
-    createAnimations() {
-        if (this.anims.exists('idle')) return;
-        this.anims.create({ key: 'idle', frames: [{ key: 'player', frame: 0 }], frameRate: 1 });
-        this.anims.create({ key: 'walk', frames: this.anims.generateFrameNumbers('player', { start: 1, end: 6 }), frameRate: 12, repeat: -1 });
-        this.anims.create({ key: 'jump', frames: this.anims.generateFrameNumbers('player', { start: 17, end: 19 }), frameRate: 10 });
-        this.anims.create({ key: 'crouch', frames: this.anims.generateFrameNumbers('player', { start: 7, end: 9 }), frameRate: 6, repeat: -1 });
     }
 
     createCatAnimations() {
@@ -620,7 +611,7 @@ export default class Level1Scene extends Phaser.Scene {
             frameRate: 3,
         });
     }
-    private matchCatAnimation(playerAnimKey: string) {
+    protected matchCatAnimation(playerAnimKey: string) {
         if (playerAnimKey.includes('walk') || playerAnimKey.includes('run')) {
             this.cat.play('cat_walk', true);
         } else if (playerAnimKey.includes('jump') || playerAnimKey.includes('fall')) {
