@@ -1,16 +1,16 @@
 let predefinedStars = [
-    // --- 4 
+    // --- 4 early years
     "Basics of DOS",
     "Basics of Pascal",
     "Basics of Assembler - 13h",
     "Basics of electronics",
-    // --- 5
+    // --- 5 highschool
     "Basics of C++",
     "Basics of algorithms",
     "Basics of networks",
     "HTML & CSS",
     "Basics of PHP",
-    // --- 12
+    // --- 12 uni krakow
     "Data structures and algorithms",
     "C",
     "C++",
@@ -23,31 +23,36 @@ let predefinedStars = [
     "Basics of AI",
     "Linux",
     "Databases",
-    // ---
+    // --- uni wroclaw
+    "Advanced UML & OCL",
+    "AI",
+    "Parallel computing",
+    "Testing",
+    "Language processing",
+    // --- uni lpdgc
     "Advanced PHP",
     "Advanced JavaScript", ,
     "Docker",
     "NodeJS",
     "MongoDB",
     "Spanish A2+",
-    // ---
-    "Advanced UML & OCL",
-    "AI",
-    "Parallel computing",
-    "Testing",
-    "Language processing",
-    // ---
+    // --- work
     "Advanced PHP",
     "Advanced MySQL",
     "Big Data",
     "Advanced Linux",
     "Python",
     "Queues",
-    // ---
+    "AMQP",
+    "Redis",
     "Advanced PHP",
     "Advanced SQL",
     "Advanced Python",
     "Advanced Docker",
+    "Design patterns",
+    "DDD",
+    "Agile",
+    "Scrum",
 ];
 
 
@@ -61,22 +66,23 @@ let predefinedSpikes = [
     "Big Refactor",
     "Brain Fog",
     "Late Hours",
-    "Legacy Debt",
+    "Intensive Workload",
+    "Long Study Hours",
     "Deep Focus",
     "Edge Cases",
     "Mental Load",
-    "System Migration",
     "Energy Drain",
-    "Fixing Production",
-    "Burnout Risk",
     "Strict Deadlines",
     "Sleepy Coder",
-    "High Traffic",
+    "Legacy Debt",
+    "System Migration",
     "No Strength",
     "API Bottlenecks",
     "Creative Block",
     "Security Patching",
     "Pure Exhaustion",
+    "Fixing Production",
+    "Burnout Risk",
     "Code Review Loop",
     "Heavy Pressure",
     "Hard Debugging",
@@ -87,4 +93,10 @@ let predefinedSpikes = [
     "Need a Break"
 ];
 
-export { predefinedStars, predefinedSpikes };
+let predefinedInfos = [
+    "Pipe organs were the most complex machines built by humans before the invention of the steam engine. They combine mechanics, acoustics, and architecture into a single instrument. \nAn organist plays them with both hands and feet, while also controlling numerous stops and switches that shape the sound.\n\nThis unique coordination strongly engages the brain, enhancing cognition, focus, and spatial thinking.\n\nI was an organist for over than 5 years. I've also created a website Musicam Sacram, to gather polish organists in one place.Nowadays, it's one of the biggest websites of that topic in Europe.",
+    "From this point onward, some details regarding my skills, projects, and achievements are intentionally blended, generalized, or omitted. Selected employers and clients are not listed by name. This is done in accordance with non-disclosure agreements (NDAs) and confidentiality obligations, and demonstrates my respect for privacy, security, and professional responsibility.\n\nAny attribution of achievements, challenges, or problems to specific roles or projects is intentionally randomized and should not be interpreted as a literal or direct association.",
+    "Thailand is a country with a long sense of continuity, shaped by the fact that it was never formally colonized. Its language and writing system reflect deep historical roots, and everyday communication relies heavily on context and tone.\n\nThe country functions as a constitutional monarchy, where tradition still plays an important cultural role.\nSocial life places strong emphasis on harmony, respect, and consideration for others, which is visible in daily interactions."
+];
+
+export { predefinedStars, predefinedSpikes, predefinedInfos };

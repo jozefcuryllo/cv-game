@@ -19,7 +19,7 @@ export default class Level1Scene extends BaseScene {
     protected boxes!: Phaser.Physics.Arcade.StaticGroup;
 
     protected isRespawning = false;
-    protected worldWidth = 20000;
+    protected worldWidth = 25000;
 
     protected playerHistory: PathPoint[] = [];
     protected historyLength: number = 20;
@@ -68,9 +68,6 @@ export default class Level1Scene extends BaseScene {
         this.load.image('spikes', '/assets/sprites/Platformer Art Complete Pack/Base pack/Items/spikes.png');
         this.load.image('bush', '/assets/sprites/Platformer Art Complete Pack/Base pack/Items/bush.png');
         this.load.image('plant', '/assets/sprites/Platformer Art Complete Pack/Base pack/Items/plant.png');
-        this.load.image('tree01', '/assets/sprites/Bunch of trees/tree2.png');
-        this.load.image('tree02', '/assets/sprites/Bunch of trees/tree3.png');
-        this.load.image('tree03', '/assets/sprites/Bunch of trees/tree4.png');
 
         this.load.image('box', '/assets/sprites/Platformer Art Complete Pack/Base pack/Tiles/box.png');
         this.load.image('boxAlt', '/assets/sprites/Platformer Art Complete Pack/Base pack/Tiles/boxAlt.png');
@@ -120,13 +117,17 @@ export default class Level1Scene extends BaseScene {
         this.spikes = this.physics.add.staticGroup();
 
         const rawData = this.cache.text.get('levelData');
-        const lines = rawData.split('\n').map((line: string) => line.replace('\r', ''));
+        const lines = rawData
+            .split('\n')
+            .map((line: string) => line.replace('\r', ''))
+            .filter((line: string) => !line.trim().startsWith('//'));
         const rowCount = lines.length;
         const colCount = Math.max(...lines.map((l: string) => l.length));
 
         let milestonesIndex = 0;
         let starsIndex = 0;
         let spikesIndex = 0;
+        let infosIndex = 1;
 
         for (let colIndex = 0; colIndex < colCount; colIndex++) {
             for (let rowIndex = 0; rowIndex < rowCount; rowIndex++) {
@@ -144,14 +145,33 @@ export default class Level1Scene extends BaseScene {
                 } else if (char === '=') {
                     this.createGround(x, adjustedY);
                 } else if (char === '^') {
-                    this.createSpike(x, adjustedY, spikesIndex++);
+                    const leftChar = colIndex > 0 ? lines[rowIndex][colIndex - 1] : ' ';
+
+                    this.createSpike(x, adjustedY);
+
+                    if (leftChar !== '^') {
+
+                        let groupLength = 1;
+                        while (lines[rowIndex][colIndex + groupLength] === '^') {
+                            groupLength++;
+                        }
+
+                        const offsetX = ((groupLength - 1) * this.tile) / 2;
+
+                        this.createSpikeLabel(x + offsetX, adjustedY, spikesIndex++);
+                    }
+                }
+                else if (char === 'C') {
+                    this.createChurch(x, h - 2 * this.tile);
+                }
+                else if (char === 'S') {
+                    this.createSign(x, h - this.tile, infosIndex++);
                 }
             }
         }
 
         this.createTreesAndBushes();
         this.createClouds();
-        this.createBuilding(500, h - 2 * this.tile);
 
         this.cat = this.physics.add.sprite(100, h - 200, 'cat');
         this.cat.setFlipX(true);
@@ -177,10 +197,11 @@ export default class Level1Scene extends BaseScene {
         this.physics.add.overlap(this.player, this.stars, this.collectStar, undefined, this);
         this.physics.add.overlap(this.player, this.spikes, this.handleDeath, undefined, this);
 
-
-        if(false){
         this.playNextTrack();
-        }
+
+        this.events.on('wake', () => {
+            this.playNextTrack();
+        });
     }
 
     protected createTreesAndBushes() {
@@ -230,7 +251,7 @@ export default class Level1Scene extends BaseScene {
 
 
 
-    protected createBuilding(x: number, y: number) {
+    protected createChurch(x: number, y: number) {
         const tile = this.tile;
         const width = 7;
         const height = 5;
@@ -320,6 +341,8 @@ export default class Level1Scene extends BaseScene {
         const upKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.UP);
         this.physics.add.overlap(this.player, doorTrigger, () => {
             if (Phaser.Input.Keyboard.JustDown(enterKey) || Phaser.Input.Keyboard.JustDown(upKey)) {
+                this.music.stop();
+                this.music.destroy();
                 this.scene.switch('ChurchScene');
             }
         }, undefined, this);
@@ -415,16 +438,16 @@ export default class Level1Scene extends BaseScene {
 
     }
 
-    protected createSpike(x: number, y: number, index: number) {
-        const mySpike = predefinedSpikes[index];
-        if (!mySpike) return;
-
+    protected createSpike(x: number, y: number) {
         const spike = this.spikes.create(x, y, 'spikes')
-            .setDisplaySize(this.tile, this.tile)
-            ;
-
+            .setDisplaySize(this.tile, this.tile);
         spike.body.setSize(this.tile, this.tile);
         spike.refreshBody();
+    }
+
+    protected createSpikeLabel(x: number, y: number, index: number) {
+        const mySpike = predefinedSpikes[index];
+        if (!mySpike) return;
 
         const label = this.add.text(x, y - 60,
             mySpike,
@@ -457,7 +480,6 @@ export default class Level1Scene extends BaseScene {
             repeat: -1
         });
 
-        spike.setData('label', label);
     }
 
     collectStar(player: any, star: Phaser.Physics.Arcade.Sprite): void {
@@ -477,7 +499,8 @@ export default class Level1Scene extends BaseScene {
         }
 
         star.destroy();
-        this.score += 10;
+        this.score++;
+        this.registry.set('score', this.score);
         this.scoreText.setText(`Score: ${this.score}`);
     }
 
@@ -514,10 +537,12 @@ export default class Level1Scene extends BaseScene {
 
     handleDeath() {
         super.handleDeath();
-        this.playerHistory = [];
 
-        this.player.setTint(0xff0000);
-        this.time.delayedCall(800, () => this.scene.restart());
+        this.playerHistory = [];
+        this.score = 0;
+        this.registry.set('score', this.score);
+
+        this.isRespawning = false;
     }
 
     update() {

@@ -17,6 +17,7 @@ export default class Credits extends Phaser.Scene {
                 <p><b>MUSIC:</b></p>
                 <p>Track 1 - Music by <a href="https://pixabay.com/users/robloxeur-43206746/?utm_source=link-attribution&utm_medium=referral&utm_campaign=music&utm_content=296273">Robloxeur</a> from <a href="https://pixabay.com//?utm_source=link-attribution&utm_medium=referral&utm_campaign=music&utm_content=296273">Pixabay</a></p>
                 <p>Track 2 - Music by <a href="https://pixabay.com/users/bouncyrunner-44731320/?utm_source=link-attribution&utm_medium=referral&utm_campaign=music&utm_content=445782">BouncyRunner</a> from <a href="https://pixabay.com//?utm_source=link-attribution&utm_medium=referral&utm_campaign=music&utm_content=445782">Pixabay</a></p>
+                <p>Organ fugue - Yubatake - <a href="https://opengameart.org/content/fugue-in-b-minor">https://opengameart.org/content/fugue-in-b-minor</a>
                 <br>
                 <p><b>SFX:</b></p>
                 <p>

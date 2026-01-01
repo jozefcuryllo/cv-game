@@ -1,3 +1,5 @@
+import { predefinedInfos } from "./level1_config.js";
+
 export abstract class BaseScene extends Phaser.Scene {
     protected player!: Phaser.Physics.Arcade.Sprite;
     protected cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
@@ -21,6 +23,7 @@ export abstract class BaseScene extends Phaser.Scene {
 
     preload() {
         this.load.spritesheet('player', '/assets/sprites/maleBase/full/advnt_full.png', { frameWidth: 32, frameHeight: 64 });
+        this.load.image('sign', '/assets/sprites/Platformer Art Complete Pack/Base pack/Tiles/sign.png');
     }
 
     protected createPlayer(x: number, y: number) {
@@ -83,10 +86,14 @@ export abstract class BaseScene extends Phaser.Scene {
         if (this.isRespawning) return;
         this.isRespawning = true;
 
+        if (this.music) {
+            this.music.stop();
+            this.music.destroy();
+        }
+
         this.player.setTint(0xff0000);
         this.time.delayedCall(800, () => this.scene.restart());
     }
-
 
     update() {
         if (this.esc.ESC.isDown) {
@@ -155,6 +162,9 @@ export abstract class BaseScene extends Phaser.Scene {
 
     protected playNextTrack() {
         const trackKey = this.playlist[this.currentTrackIndex];
+        console.log('playlist:', this.playlist);
+        console.log('index:', this.currentTrackIndex);
+        console.log('trackey:', trackKey);
         if (trackKey) {
             this.music = this.sound.add(trackKey, { volume: 0.5 });
 
@@ -165,5 +175,167 @@ export abstract class BaseScene extends Phaser.Scene {
 
             this.music.play();
         }
+    }
+
+    protected createSign(x: number, y: number, index: number) {
+        const text = predefinedInfos[index] ?? '';
+        console.log(index, text);
+        this.add.image(x, y, 'sign')
+            .setScale(1)
+            .setOrigin(1, 1)
+            .setDepth(0);
+
+        const trigger = this.add.rectangle(x - this.tile / 2, y - this.tile / 2, this.tile * 1.5, this.tile, 0x000000, 0);
+        this.physics.add.existing(trigger, true);
+
+        const dialog = this.add.container(this.cameras.main.centerX, this.cameras.main.centerY)
+            .setScrollFactor(0)
+            .setDepth(105)
+            .setVisible(false);
+
+        const bg = this.add.rectangle(0, 0, 600, 400, 0x000000, 0.9)
+            .setStrokeStyle(4, 0x555555);
+
+        const content = this.add.text(-270, -180, text, {
+            fontSize: '20px',
+            color: '#ffffff',
+            wordWrap: { width: 520 },
+            lineSpacing: 10
+        }).setOrigin(0, 0);
+
+        const maskShape = this.make.graphics();
+
+        const maskX = this.cameras.main.centerX - 280;
+        const maskY = this.cameras.main.centerY - 180;
+
+        maskShape.fillStyle(0xffffff);
+        maskShape.fillRect(maskX, maskY, 560, 360);
+
+        maskShape.setScrollFactor(0);
+
+        const mask = maskShape.createGeometryMask();
+        content.setMask(mask);
+
+        const track = this.add.rectangle(285, 0, 10, 360, 0x333333)
+            .setInteractive();
+        const bar = this.add.rectangle(285, -180, 10, 50, 0xffffff)
+            .setOrigin(0.5, 0)
+            .setInteractive();
+
+        dialog.add([bg, track, bar, content]);
+
+        const keys = this.input.keyboard.addKeys('E,UP') as any;
+
+        this.physics.add.overlap(this.player, trigger, () => {
+            if (dialog.visible) return;
+
+            if (Phaser.Input.Keyboard.JustDown(keys.E) || Phaser.Input.Keyboard.JustDown(keys.UP)) {
+                this.player.body.setVelocity(0, 0);
+                this.input.keyboard.enabled = false;
+                dialog.setVisible(true);
+                content.y = -180;
+
+                console.log(content.text)
+
+                const updateBar = () => {
+                    const range = content.height - 360;
+                    if (range <= 0) {
+                        bar.setVisible(false);
+                        track.setVisible(false);
+                        return;
+                    }
+                    const progress = (content.y + 180) / -range;
+                    const barRange = 360 - bar.displayHeight;
+                    bar.y = -180 + (progress * barRange);
+                };
+
+                bar.displayHeight = Math.max(20, (360 / content.height) * 360);
+                updateBar();
+
+                const scrollHandler = (e: KeyboardEvent) => {
+                    const scrollSpeed = 20;
+                    const minY = -180;
+                    const maxY = Math.min(minY, 180 - content.height);
+
+                    if (e.key === 'ArrowUp' || e.key === 'w') content.y += scrollSpeed;
+                    else if (e.key === 'ArrowDown' || e.key === 's') content.y -= scrollSpeed;
+
+                    content.y = Phaser.Math.Clamp(content.y, maxY, minY);
+                    updateBar();
+                };
+
+                const wheelHandler = (e: WheelEvent) => {
+                    e.preventDefault();
+                    const scrollSpeed = 1;
+                    const minY = -180;
+                    const maxY = Math.min(minY, 180 - content.height);
+
+                    content.y -= e.deltaY * scrollSpeed;
+                    content.y = Phaser.Math.Clamp(content.y, maxY, minY);
+                    updateBar();
+                };
+
+                let isDragging = false;
+                let dragStartY = 0;
+                let barStartY = 0;
+
+                bar.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
+                    isDragging = true;
+                    dragStartY = pointer.y;
+                    barStartY = bar.y;
+                });
+
+                this.input.on('pointermove', (pointer: Phaser.Input.Pointer) => {
+                    if (!isDragging) return;
+
+                    const deltaY = pointer.y - dragStartY;
+                    const newBarY = barStartY + deltaY;
+                    const barRange = 360 - bar.displayHeight;
+                    const clampedBarY = Phaser.Math.Clamp(newBarY, -180, -180 + barRange);
+
+                    bar.y = clampedBarY;
+
+                    const progress = (clampedBarY + 180) / barRange;
+                    const contentRange = content.height - 360;
+                    content.y = -180 - (progress * contentRange);
+                });
+
+                this.input.on('pointerup', () => {
+                    isDragging = false;
+                });
+
+                track.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
+                    const localY = pointer.y - this.cameras.main.centerY;
+                    const barRange = 360 - bar.displayHeight;
+                    const newBarY = Phaser.Math.Clamp(localY - bar.displayHeight / 2, -180, -180 + barRange);
+
+                    bar.y = newBarY;
+
+                    const progress = (newBarY + 180) / barRange;
+                    const contentRange = content.height - 360;
+                    content.y = -180 - (progress * contentRange);
+                });
+
+                window.addEventListener('keydown', scrollHandler);
+                window.addEventListener('wheel', wheelHandler, { passive: false });
+
+                setTimeout(() => {
+                    const closeHandler = (e: KeyboardEvent) => {
+                        if (['ArrowUp', 'ArrowDown', 'w', 's'].includes(e.key)) return;
+                        dialog.setVisible(false);
+                        this.input.keyboard.enabled = true;
+                        isDragging = false;
+                        window.removeEventListener('keydown', scrollHandler);
+                        window.removeEventListener('wheel', wheelHandler);
+                        window.removeEventListener('keydown', closeHandler);
+                        bar.off('pointerdown');
+                        track.off('pointerdown');
+                        this.input.off('pointermove');
+                        this.input.off('pointerup');
+                    };
+                    window.addEventListener('keydown', closeHandler);
+                }, 100);
+            }
+        });
     }
 }
