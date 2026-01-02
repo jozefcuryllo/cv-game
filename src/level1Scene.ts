@@ -1,5 +1,5 @@
 import 'phaser';
-import { predefinedSpikes, predefinedStars } from './level1_config.js';
+import { predefinedSpikes } from './level1_config.js';
 import { BaseScene } from './baseScene.js';
 
 interface PathPoint {
@@ -15,7 +15,6 @@ export default class Level1Scene extends BaseScene {
 
     protected ground!: Phaser.Physics.Arcade.StaticGroup;
     protected spikes!: Phaser.Physics.Arcade.StaticGroup;
-    protected stars!: Phaser.Physics.Arcade.Group;
     protected boxes!: Phaser.Physics.Arcade.StaticGroup;
 
     protected isRespawning = false;
@@ -25,9 +24,6 @@ export default class Level1Scene extends BaseScene {
     protected historyLength: number = 20;
     protected catSpawned: boolean = false;
     protected catArrivesAtX = 13000;
-
-    protected recentLabels: Phaser.GameObjects.Text[] = [];
-    protected maxLabels = 5;
 
     protected playlist: string[] = ['track1', 'track2'];
     private spikePositions: number[] = [];
@@ -72,7 +68,6 @@ export default class Level1Scene extends BaseScene {
 
         this.load.image('box', '/assets/sprites/Platformer Art Complete Pack/Base pack/Tiles/box.png');
         this.load.image('boxAlt', '/assets/sprites/Platformer Art Complete Pack/Base pack/Tiles/boxAlt.png');
-        this.load.image('star', '/assets/sprites/Platformer Art Complete Pack/Base pack/Items/star.png');
 
         this.load.image('cloud1', '/assets/sprites/Platformer Art Complete Pack/Base pack/Items/cloud1.png');
         this.load.image('cloud2', '/assets/sprites/Platformer Art Complete Pack/Base pack/Items/cloud2.png');
@@ -95,7 +90,6 @@ export default class Level1Scene extends BaseScene {
         });
         this.load.audio('track1', 'assets/audio/track1.mp3');
         this.load.audio('track2', 'assets/audio/track2.mp3');
-        this.load.audio('star_sound', 'assets/audio/star.mp3');
 
         this.load.on('complete', function () {
             loadingText.destroy()
@@ -115,7 +109,6 @@ export default class Level1Scene extends BaseScene {
 
         this.ground = this.physics.add.staticGroup();
         this.boxes = this.physics.add.staticGroup();
-        this.stars = this.physics.add.group({ allowGravity: false });
         this.spikes = this.physics.add.staticGroup();
 
         const rawData = this.cache.text.get('levelData');
@@ -179,7 +172,7 @@ export default class Level1Scene extends BaseScene {
 
         this.cat = this.physics.add.sprite(100, h - 200, 'cat');
         this.cat.setFlipX(true);
-        this.cat.body.setAllowGravity(false);
+        (this.cat.body as Phaser.Physics.Arcade.Body)?.setAllowGravity(false);
         this.cat.setScale(0);
         this.cat.setAlpha(0);
         this.cat.setDepth(101);
@@ -198,12 +191,13 @@ export default class Level1Scene extends BaseScene {
 
         this.physics.add.collider(this.player, this.ground);
         this.physics.add.collider(this.player, this.boxes);
-        this.physics.add.overlap(this.player, this.stars, this.collectStar, undefined, this);
         this.physics.add.overlap(this.player, this.spikes, this.handleDeath, undefined, this);
 
         this.playNextTrack();
 
         this.events.on('wake', () => {
+            this.scoreText.setText(`Score: ${this.registry.get('score')}`);
+            this.refreshLabelDisplay();
             this.playNextTrack();
         });
     }
@@ -435,45 +429,6 @@ export default class Level1Scene extends BaseScene {
             .refreshBody();
     }
 
-    protected createStar(x: number, y: number, index: number) {
-
-        const star = this.stars.create(x, y, 'star')
-            .setScale(1.5);
-
-        star.body.setSize(this.tile / 2, this.tile / 2);
-        star.refreshBody();
-        const label = this.add.text(x, y - 50, predefinedStars[index] ?? "",
-            {
-                fontSize: '18px',
-                color: '#fff',
-                stroke: '#000',
-                strokeThickness: 0
-            })
-            .setOrigin(0.5)
-            .setAlpha(0.6);
-        star.setData('label', label);
-
-        this.tweens.add({
-            targets: star,
-            y: star.y - 15,
-            scale: { from: 1, to: 1.2 },
-            duration: 1500,
-            ease: 'Sine.easeInOut',
-            yoyo: true,
-            repeat: -1
-        });
-
-        this.tweens.add({
-            targets: star,
-            angle: { from: -5, to: 5 },
-            duration: 1000,
-            ease: 'Sine.easeInOut',
-            yoyo: true,
-            repeat: -1
-        });
-
-    }
-
     protected createSpike(x: number, y: number) {
         const spike = this.spikes.create(x, y, 'spikes')
             .setDisplaySize(this.tile, this.tile);
@@ -518,65 +473,11 @@ export default class Level1Scene extends BaseScene {
 
     }
 
-    collectStar(player: any, star: Phaser.Physics.Arcade.Sprite): void {
-        this.sound.play('star_sound', { volume: 0.6 });
-        const label = star.getData('label') as Phaser.GameObjects.Text;
-
-        if (label) {
-            this.addLabelToList(label.text);
-
-            this.tweens.add({
-                targets: label,
-                y: label.y - 40,
-                alpha: 0,
-                duration: 600,
-                onComplete: () => label.destroy()
-            });
-        }
-
-        star.destroy();
-        this.score++;
-        this.registry.set('score', this.score);
-        this.scoreText.setText(`Score: ${this.score}`);
-    }
-
-    protected addLabelToList(content: string): void {
-        const startX = 20;
-        const startY = 80;
-        const spacing = 22;
-
-        const newEntry = this.add.text(startX, startY, content, {
-            fontFamily: 'Arial',
-            fontSize: '16px',
-            color: '#ffffff'
-        });
-        newEntry.setAlpha(0.7);
-        newEntry.setScrollFactor(0);
-
-        this.recentLabels.unshift(newEntry);
-
-        this.recentLabels.forEach((label, index) => {
-            if (index > 0) {
-                this.tweens.add({
-                    targets: label,
-                    y: startY + (index * spacing),
-                    duration: 150
-                });
-            }
-        });
-
-        if (this.recentLabels.length > this.maxLabels) {
-            const oldLabel = this.recentLabels.pop();
-            oldLabel?.destroy();
-        }
-    }
-
     handleDeath() {
         super.handleDeath();
 
         this.playerHistory = [];
-        this.score = 0;
-        this.registry.set('score', this.score);
+        this.registry.set('score', 0);
 
         this.isRespawning = false;
     }

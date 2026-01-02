@@ -1,12 +1,12 @@
-import { predefinedInfos } from "./level1_config.js";
+import { predefinedInfos, predefinedStars } from "./level1_config.js";
 
 export abstract class BaseScene extends Phaser.Scene {
     protected player!: Phaser.Physics.Arcade.Sprite;
+    protected stars!: Phaser.Physics.Arcade.Group;
     protected cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
     protected wasd!: any;
     protected esc!: any;
 
-    protected score = 0;
     protected scoreText!: Phaser.GameObjects.Text;
     protected isRespawning = false;
 
@@ -22,16 +22,22 @@ export abstract class BaseScene extends Phaser.Scene {
         down: false
     };
     protected jumpInProcess = false;
+    protected maxLabels = 5;
+    protected activeLabels: Phaser.GameObjects.Text[] = [];
+
     constructor(config?: string | Phaser.Types.Scenes.SettingsConfig | undefined) {
         super(config);
     }
 
     preload() {
         this.load.spritesheet('player', '/assets/sprites/maleBase/full/advnt_full.png', { frameWidth: 32, frameHeight: 64 });
+        this.load.image('star', '/assets/sprites/Platformer Art Complete Pack/Base pack/Items/star.png');
+        this.load.audio('star_sound', 'assets/audio/star.mp3');
         this.load.image('sign', '/assets/sprites/Platformer Art Complete Pack/Base pack/Tiles/sign.png');
     }
 
     protected create() {
+
         const w = this.cameras.main.width;
         const margin = 20;
 
@@ -73,6 +79,9 @@ export abstract class BaseScene extends Phaser.Scene {
         });
 
         this.setupControls();
+
+        this.stars = this.physics.add.group({ allowGravity: false });
+        this.refreshLabelDisplay();
     }
 
     protected setupControls() {
@@ -108,7 +117,7 @@ export abstract class BaseScene extends Phaser.Scene {
 
         this.cameras.main.startFollow(this.player, true, 0.1, 0.1);
 
-        this.scoreText = this.add.text(20, 20, 'Score: 0', { fontSize: '20px', color: '#FFF' })
+        this.scoreText = this.add.text(20, 20, `Score: ${this.registry.get('score')}`, { fontSize: '20px', color: '#FFF' })
             .setScrollFactor(0);
 
         this.createAnimations();
@@ -138,6 +147,9 @@ export abstract class BaseScene extends Phaser.Scene {
                 this.time.delayedCall(1000, () => indicator.destroy());
             });
         }
+
+        this.physics.add.overlap(this.player, this.stars, this.collectStar as Phaser.Types.Physics.Arcade.ArcadePhysicsCallback, undefined, this);
+
     }
 
     protected createAnimations() {
@@ -188,7 +200,6 @@ export abstract class BaseScene extends Phaser.Scene {
         if (!this.player) return;
 
         if (this.isRespawning) return;
-
 
         if (this.player.y > this.cameras.main.height + 50) {
             this.handleDeath();
@@ -304,7 +315,7 @@ export abstract class BaseScene extends Phaser.Scene {
 
         const openDialog = () => {
             if (dialog.visible) return;
-          
+
             this.player.setVelocity(0, 0);
             if (this.input.keyboard) this.input.keyboard.enabled = false;
 
@@ -383,5 +394,131 @@ export abstract class BaseScene extends Phaser.Scene {
             }
         });
 
+    }
+
+    protected createStar(x: number, y: number, index: number | null, text: string | null = null) {
+
+        const _text = index !== null ? predefinedStars[index] ?? "" : text ?? ""
+        const star = this.stars.create(x, y, 'star')
+            .setScale(1.5);
+
+        star.body.setSize(this.tile / 2, this.tile / 2);
+        star.refreshBody();
+        const label = this.add.text(x, y - 50, _text,
+            {
+                fontSize: '18px',
+                color: '#fff',
+                stroke: '#000',
+                strokeThickness: 0
+            })
+            .setOrigin(0.5)
+            .setAlpha(0.6);
+        star.setData('label', label);
+
+        this.tweens.add({
+            targets: star,
+            y: star.y - 15,
+            scale: { from: 1, to: 1.2 },
+            duration: 1500,
+            ease: 'Sine.easeInOut',
+            yoyo: true,
+            repeat: -1
+        });
+
+        this.tweens.add({
+            targets: star,
+            angle: { from: -5, to: 5 },
+            duration: 1000,
+            ease: 'Sine.easeInOut',
+            yoyo: true,
+            repeat: -1
+        });
+
+    }
+
+    protected addLabelToList(content: string): void {
+        let labelData: string[] = this.registry.get('labelData') || [];
+        labelData.unshift(content);
+
+        if (labelData.length > (this.maxLabels || 5)) {
+            labelData.pop();
+        }
+        this.registry.set('labelData', labelData);
+
+        const startX = 20;
+        const startY = 80;
+        const spacing = 22;
+
+        this.activeLabels.forEach((label, index) => {
+            this.tweens.add({
+                targets: label,
+                y: startY + ((index + 1) * spacing),
+                duration: 150
+            });
+        });
+
+        const newLabel = this.add.text(startX, startY, content, {
+            fontFamily: 'Arial',
+            fontSize: '16px',
+            color: '#ffffff'
+        });
+        newLabel.setAlpha(0).setScrollFactor(0);
+
+        this.tweens.add({
+            targets: newLabel,
+            alpha: 0.7,
+            duration: 150
+        });
+
+        this.activeLabels.unshift(newLabel);
+
+        if (this.activeLabels.length > (this.maxLabels || 5)) {
+            const oldLabel = this.activeLabels.pop();
+            oldLabel?.destroy();
+        }
+    }
+
+    protected refreshLabelDisplay(): void {
+        const startX = 20;
+        const startY = 80;
+        const spacing = 22;
+
+        this.activeLabels.forEach(l => l.destroy());
+        this.activeLabels = [];
+
+        const labelData: string[] = this.registry.get('labelData') || [];
+
+        labelData.forEach((text, index) => {
+            const label = this.add.text(startX, startY + (index * spacing), text, {
+                fontFamily: 'Arial',
+                fontSize: '16px',
+                color: '#ffffff'
+            });
+            label.setAlpha(0.7).setScrollFactor(0);
+            this.activeLabels.push(label);
+        });
+    }
+
+    collectStar(player: any, star: Phaser.Physics.Arcade.Sprite): void {
+        this.sound.play('star_sound', { volume: 0.6 });
+        const label = star.getData('label') as Phaser.GameObjects.Text;
+
+        if (label) {
+            this.addLabelToList(label.text);
+
+            this.tweens.add({
+                targets: label,
+                y: label.y - 40,
+                alpha: 0,
+                duration: 600,
+                onComplete: () => label.destroy()
+            });
+        }
+
+        star.destroy();
+
+        const newScore = this.registry.get('score') + 1;
+        this.registry.set('score', newScore);
+        this.scoreText.setText(`Score: ${newScore}`);
     }
 }

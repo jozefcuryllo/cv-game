@@ -58,5 +58,7 @@ export default class MenuScene extends Phaser.Scene {
             align: 'center'
         }).setOrigin(0.5);
 
+        this.registry.set('score', 0);
+        this.registry.set('labels', []);
     }
 }

@@ -2,7 +2,7 @@ let predefinedStars = [
     // --- 4 early years
     "Basics of DOS",
     "Basics of Pascal",
-    "Basics of Assembler - 13h",
+    "Basics of Assembler",
     "Basics of electronics",
     // --- 5 highschool
     "Basics of C++",

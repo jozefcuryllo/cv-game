@@ -40,8 +40,6 @@ export default class ChurchScene extends BaseScene {
         this.cameras.main.setBounds(0, 0, this.worldWidth, h);
         const bottomY = h;
         this.createPlayer(250, bottomY - 400);
-        this.score = this.registry.get('score') || 0;
-        this.scoreText = this.add.text(20, 20, `Score: ${this.score}`, { fontSize: '20px', color: '#FFF' }).setScrollFactor(0);
 
         const centerX = this.cameras.main.centerX - (12 * this.tile) / 2;
 
@@ -55,7 +53,18 @@ export default class ChurchScene extends BaseScene {
         const exitTrigger = this.add.rectangle(centerX + this.tile, bottomY, this.tile, this.tile * 2, 0x000000, 0);
         this.physics.add.existing(exitTrigger, true);
 
+        this.createStar(300, bottomY - 2 * this.tile, null, "Bimanual coordination")
+        this.createStar(600, bottomY - 2 * this.tile, null, "Sight-reading")
+        this.createStar(900, bottomY - 2 * this.tile, null, "Divided attention")
+        this.createStar(1200, bottomY - 2 * this.tile, null, "Performance monitoring")
+
         this.playNextTrack();
+
+        this.events.on('wake', () => {
+            this.scoreText.setText(`Score: ${this.registry.get('score')}`);
+            this.refreshLabelDisplay();
+            this.playNextTrack();
+        });
     }
 
     update() {
