@@ -32,7 +32,7 @@ export default class ChurchScene extends BaseScene {
     }
 
     create() {
-
+        super.create();
         const h = this.cameras.main.height;
 
         this.cameras.main.setBackgroundColor('#6db3f2');
@@ -40,7 +40,7 @@ export default class ChurchScene extends BaseScene {
         this.cameras.main.setBounds(0, 0, this.worldWidth, h);
         const bottomY = h;
         this.createPlayer(250, bottomY - 400);
-        this.score = this.registry.get('score');
+        this.score = this.registry.get('score') || 0;
         this.scoreText = this.add.text(20, 20, `Score: ${this.score}`, { fontSize: '20px', color: '#FFF' }).setScrollFactor(0);
 
         const centerX = this.cameras.main.centerX - (12 * this.tile) / 2;
@@ -145,13 +145,34 @@ export default class ChurchScene extends BaseScene {
         );
         this.physics.add.existing(doorTrigger, true);
 
-        const enterKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.E);
-        const upKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.UP);
-        this.physics.add.overlap(this.player, doorTrigger, () => {
-            if (Phaser.Input.Keyboard.JustDown(enterKey) || Phaser.Input.Keyboard.JustDown(upKey)) {
+        const enterKey = this.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.E);
+        const upKey = this.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.UP);
+
+        const goToLevel1 = () => {
+            if (this.music) {
                 this.music.stop();
                 this.music.destroy();
-                this.scene.switch('Level1Scene');
+            }
+            this.scene.switch('Level1Scene');
+        };
+
+        doorTrigger
+            .setInteractive({ useHandCursor: true })
+            .setDepth(20);
+
+        doorTrigger.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
+            pointer.event.stopPropagation();
+            if (this.physics.overlap(this.player, doorTrigger)) {
+                goToLevel1();
+            }
+        });
+
+        this.physics.add.overlap(this.player, doorTrigger, () => {
+            const eDown = enterKey && Phaser.Input.Keyboard.JustDown(enterKey);
+            const upDown = upKey && Phaser.Input.Keyboard.JustDown(upKey);
+
+            if (eDown || upDown) {
+                goToLevel1();
             }
         }, undefined, this);
     }

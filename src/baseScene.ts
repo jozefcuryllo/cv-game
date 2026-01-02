@@ -15,8 +15,13 @@ export abstract class BaseScene extends Phaser.Scene {
     protected currentTrackIndex: number = 0;
     protected music!: Phaser.Sound.BaseSound;
     protected worldWidth = 1000;
-
-
+    protected touchState: { [key: string]: boolean } = {
+        left: false,
+        right: false,
+        up: false,
+        down: false
+    };
+    protected jumpInProcess = false;
     constructor(config?: string | Phaser.Types.Scenes.SettingsConfig | undefined) {
         super(config);
     }
@@ -26,40 +31,113 @@ export abstract class BaseScene extends Phaser.Scene {
         this.load.image('sign', '/assets/sprites/Platformer Art Complete Pack/Base pack/Tiles/sign.png');
     }
 
+    protected create() {
+        const w = this.cameras.main.width;
+        const margin = 20;
+
+        const muteBtn = this.add.text(w - margin, margin, this.sound.mute ? '🔇' : '🔊', {
+            fontSize: '32px',
+            backgroundColor: '#000000aa',
+            padding: { x: 10, y: 5 }
+        })
+            .setOrigin(1, 0)
+            .setInteractive({ useHandCursor: true })
+            .setScrollFactor(0)
+            .setDepth(200);
+
+        muteBtn.on('pointerdown', () => {
+            const old = this.sound.mute;
+            this.sound.mute = !old;
+            muteBtn.setText(!old ? '🔇' : '🔊');
+        });
+
+        const menuBtn = this.add.text(w - margin - 70, margin, 'MENU', {
+            fontSize: '24px',
+            color: '#ffffff',
+            backgroundColor: '#000000aa',
+            padding: { x: 10, y: 10 }
+        })
+            .setOrigin(1, 0)
+            .setInteractive({ useHandCursor: true })
+            .setScrollFactor(0)
+            .setDepth(200);
+
+        menuBtn.on('pointerdown', () => {
+            this.sound.stopAll();
+            this.scene.start('MenuScene');
+        });
+
+        [muteBtn, menuBtn].forEach(btn => {
+            btn.on('pointerover', () => btn.setStyle({ fill: '#ff0' }));
+            btn.on('pointerout', () => btn.setStyle({ fill: '#fff' }));
+        });
+
+        this.setupControls();
+    }
+
+    protected setupControls() {
+        const w = this.cameras.main.width;
+        const h = this.cameras.main.height;
+
+        const createZone = (x: number, y: number, width: number, height: number, key: string) => {
+            const zone = this.add.zone(x, y, width, height)
+                .setOrigin(0)
+                .setInteractive()
+                .setScrollFactor(0)
+                .setDepth(10);
+
+            zone.on('pointerdown', () => { this.touchState[key] = true; });
+            zone.on('pointerup', () => { this.touchState[key] = false; });
+            zone.on('pointerout', () => { this.touchState[key] = false; });
+        };
+
+        createZone(0, 0, w, h * 0.25, 'up');
+        createZone(0, h * 0.75, w, h * 0.25, 'down');
+        createZone(0, h * 0.25, w * 0.5, h * 0.5, 'left');
+        createZone(w * 0.5, h * 0.25, w * 0.5, h * 0.5, 'right');
+    }
+
     protected createPlayer(x: number, y: number) {
         this.player = this.physics.add.sprite(x, y, 'player').setScale(3);
         this.player.setCollideWorldBounds(true);
-        this.player.body.setGravityY(1200);
+        this.player.setGravity(0, 1200);
         this.player.setDragX(1500);
         this.player.setMaxVelocity(400, 1000);
         this.player.body?.setSize(12, 64);
         this.player.setDepth(100);
 
-        this.cursors = this.input.keyboard.createCursorKeys();
-        this.wasd = this.input.keyboard.addKeys('W,A,S,D,SPACE');
-        this.esc = this.input.keyboard.addKeys('ESC');
-
         this.cameras.main.startFollow(this.player, true, 0.1, 0.1);
 
-        this.scoreText = this.add.text(20, 20, 'Score: 0', { fontSize: '20px', color: '#FFF' }).setScrollFactor(0);
-
+        this.scoreText = this.add.text(20, 20, 'Score: 0', { fontSize: '20px', color: '#FFF' })
+            .setScrollFactor(0);
 
         this.createAnimations();
 
-        this.input.keyboard.on('keydown-M', () => {
-            this.sound.mute = !this.sound.mute;
+        if (this.input.keyboard) {
+            this.cursors = this.input.keyboard.createCursorKeys();
+            this.wasd = this.input.keyboard.addKeys('W,A,S,D,SPACE');
+            this.esc = this.input.keyboard.addKeys('ESC');
 
-            const status = !this.sound.mute ? 'MUTED' : 'UNMUTED';
-            const indicator = this.add.text(this.cameras.main.width / 2, 50, status, {
-                fontSize: '24px',
-                color: '#ff4444',
-                fontStyle: 'bold',
-                stroke: '#000000',
-                strokeThickness: 4
-            }).setOrigin(0.5).setScrollFactor(0);
+            this.input.keyboard.on('keydown-M', () => {
+                this.sound.mute = !this.sound.mute;
 
-            this.time.delayedCall(1000, () => indicator.destroy());
-        });
+                const status = !this.sound.mute ? 'MUTED' : 'UNMUTED';
+                const indicator = this.add.text(
+                    this.cameras.main.width / 2, 50,
+                    status,
+                    {
+                        fontSize: '24px',
+                        color: '#ff4444',
+                        fontStyle: 'bold',
+                        stroke: '#000000',
+                        strokeThickness: 4
+                    })
+                    .setOrigin(0.5)
+                    .setScrollFactor(0);
+
+                this.time.delayedCall(1000, () => indicator.destroy());
+            });
+        }
     }
 
     protected createAnimations() {
@@ -67,13 +145,16 @@ export abstract class BaseScene extends Phaser.Scene {
         this.anims.create({ key: 'idle', frames: [{ key: 'player', frame: 0 }], frameRate: 1 });
         this.anims.create({ key: 'walk', frames: this.anims.generateFrameNumbers('player', { start: 1, end: 6 }), frameRate: 12, repeat: -1 });
         this.anims.create({ key: 'jump', frames: this.anims.generateFrameNumbers('player', { start: 17, end: 19 }), frameRate: 10 });
-        this.anims.create({ key: 'crouch', frames: this.anims.generateFrameNumbers('player', { start: 7, end: 9 }), frameRate: 6, repeat: -1 });
+        this.anims.create({ key: 'crouch', frames: this.anims.generateFrameNumbers('player', { start: 7, end: 9 }), frameRate: 6, repeat: 0 });
     }
 
     protected playAnimations(body: Phaser.Physics.Arcade.Body, isCrouching: boolean) {
         if (!body.blocked.down) {
             this.player.anims.play('jump', true);
         } else if (isCrouching) {
+            if (this.player.anims.currentAnim?.key === 'crouch' && this.player.anims.isPlaying === false) {
+                return;
+            }
             this.player.anims.play('crouch', true);
         } else if (Math.abs(body.velocity.x) > 20) {
             this.player.anims.play('walk', true);
@@ -118,20 +199,34 @@ export abstract class BaseScene extends Phaser.Scene {
         const body = this.player.body as Phaser.Physics.Arcade.Body;
         const accel = 1000;
 
+        const moveLeft = this.cursors.left.isDown || this.wasd.A.isDown || this.touchState.left;
+        const moveRight = this.cursors.right.isDown || this.wasd.D.isDown || this.touchState.right;
+        const moveDown = this.cursors.down.isDown || this.wasd.S.isDown || this.touchState.down;
 
-        const isCrouchKeyDown = this.cursors.down.isDown || this.wasd.S.isDown;
-        const isCrouching = isCrouchKeyDown && body.blocked.down;
+        const jumpJustPressed = Phaser.Input.Keyboard.JustDown(this.cursors.up) ||
+            Phaser.Input.Keyboard.JustDown(this.wasd.W) ||
+            Phaser.Input.Keyboard.JustDown(this.wasd.SPACE) ||
+            (this.touchState.up && !this.jumpInProcess);
+
+        if (this.touchState.up) this.jumpInProcess = true;
+        else this.jumpInProcess = false;
+
+        const isCrouching = moveDown && body.blocked.down;
 
         if (isCrouching) {
             body.setAccelerationX(0);
-            body.setDragX(500);
+            body.setVelocityX(0);
+            body.setDragX(1200);
+
+            if (moveLeft) this.player.flipX = true;
+            else if (moveRight) this.player.flipX = false;
+
         } else {
             body.setDragX(1500);
-
-            if (this.cursors.left.isDown || this.wasd.A.isDown) {
+            if (moveLeft) {
                 body.setAccelerationX(-accel);
                 this.player.flipX = true;
-            } else if (this.cursors.right.isDown || this.wasd.D.isDown) {
+            } else if (moveRight) {
                 body.setAccelerationX(accel);
                 this.player.flipX = false;
             } else {
@@ -139,21 +234,16 @@ export abstract class BaseScene extends Phaser.Scene {
             }
         }
 
-        const jumpPressed =
-            Phaser.Input.Keyboard.JustDown(this.cursors.up) ||
-            Phaser.Input.Keyboard.JustDown(this.wasd.W) ||
-            Phaser.Input.Keyboard.JustDown(this.wasd.SPACE);
-
-        const jumpReleased =
-            Phaser.Input.Keyboard.JustUp(this.cursors.up) ||
-            Phaser.Input.Keyboard.JustUp(this.wasd.W) ||
-            Phaser.Input.Keyboard.JustUp(this.wasd.SPACE);
-
-        if (jumpPressed && body.blocked.down) {
+        if (jumpJustPressed && body.blocked.down) {
             body.setVelocityY(-700);
         }
 
-        if (jumpReleased && body.velocity.y < 0) {
+        const isStillHoldingJump = this.cursors.up.isDown ||
+            this.wasd.W.isDown ||
+            this.wasd.SPACE.isDown ||
+            this.touchState.up;
+
+        if (!isStillHoldingJump && body.velocity.y < 0) {
             body.setVelocityY(body.velocity.y * 0.4);
         }
 
@@ -162,9 +252,7 @@ export abstract class BaseScene extends Phaser.Scene {
 
     protected playNextTrack() {
         const trackKey = this.playlist[this.currentTrackIndex];
-        console.log('playlist:', this.playlist);
-        console.log('index:', this.currentTrackIndex);
-        console.log('trackey:', trackKey);
+
         if (trackKey) {
             this.music = this.sound.add(trackKey, { volume: 0.5 });
 
@@ -179,7 +267,7 @@ export abstract class BaseScene extends Phaser.Scene {
 
     protected createSign(x: number, y: number, index: number) {
         const text = predefinedInfos[index] ?? '';
-        console.log(index, text);
+
         this.add.image(x, y, 'sign')
             .setScale(1)
             .setOrigin(1, 1)
@@ -187,15 +275,16 @@ export abstract class BaseScene extends Phaser.Scene {
 
         const trigger = this.add.rectangle(x - this.tile / 2, y - this.tile / 2, this.tile * 1.5, this.tile, 0x000000, 0);
         this.physics.add.existing(trigger, true);
+        trigger
+            .setInteractive({ useHandCursor: true })
+            .setDepth(20);
 
         const dialog = this.add.container(this.cameras.main.centerX, this.cameras.main.centerY)
             .setScrollFactor(0)
             .setDepth(105)
             .setVisible(false);
 
-        const bg = this.add.rectangle(0, 0, 600, 400, 0x000000, 0.9)
-            .setStrokeStyle(4, 0x555555);
-
+        const bg = this.add.rectangle(0, 0, 600, 400, 0x000000, 0.9).setStrokeStyle(4, 0x555555);
         const content = this.add.text(-270, -180, text, {
             fontSize: '20px',
             color: '#ffffff',
@@ -204,138 +293,95 @@ export abstract class BaseScene extends Phaser.Scene {
         }).setOrigin(0, 0);
 
         const maskShape = this.make.graphics();
+        maskShape.fillStyle(0xffffff).fillRect(this.cameras.main.centerX - 280, this.cameras.main.centerY - 180, 560, 360).setScrollFactor(0);
+        content.setMask(maskShape.createGeometryMask());
 
-        const maskX = this.cameras.main.centerX - 280;
-        const maskY = this.cameras.main.centerY - 180;
-
-        maskShape.fillStyle(0xffffff);
-        maskShape.fillRect(maskX, maskY, 560, 360);
-
-        maskShape.setScrollFactor(0);
-
-        const mask = maskShape.createGeometryMask();
-        content.setMask(mask);
-
-        const track = this.add.rectangle(285, 0, 10, 360, 0x333333)
-            .setInteractive();
-        const bar = this.add.rectangle(285, -180, 10, 50, 0xffffff)
-            .setOrigin(0.5, 0)
-            .setInteractive();
-
+        const track = this.add.rectangle(285, 0, 10, 360, 0x333333).setInteractive();
+        const bar = this.add.rectangle(285, -180, 10, 50, 0xffffff).setOrigin(0.5, 0).setInteractive();
         dialog.add([bg, track, bar, content]);
 
-        const keys = this.input.keyboard.addKeys('E,UP') as any;
+        const keys = this.input.keyboard ? this.input.keyboard.addKeys('E,UP') as any : null;
+
+        const openDialog = () => {
+            if (dialog.visible) return;
+          
+            this.player.setVelocity(0, 0);
+            if (this.input.keyboard) this.input.keyboard.enabled = false;
+
+            dialog.setVisible(true);
+            content.y = -180;
+
+            const updateBar = () => {
+                const range = content.height - 360;
+                if (range <= 0) { bar.setVisible(false); track.setVisible(false); return; }
+                const progress = (content.y + 180) / -range;
+                bar.y = -180 + (progress * (360 - bar.displayHeight));
+            };
+
+            bar.displayHeight = Math.max(20, (360 / content.height) * 360);
+            updateBar();
+
+            const scrollHandler = (e: KeyboardEvent) => {
+                const minY = -180;
+                const maxY = Math.min(minY, 180 - content.height);
+                if (e.key === 'ArrowUp' || e.key === 'w') content.y += 20;
+                else if (e.key === 'ArrowDown' || e.key === 's') content.y -= 20;
+                content.y = Phaser.Math.Clamp(content.y, maxY, minY);
+                updateBar();
+            };
+
+            const wheelHandler = (e: WheelEvent) => {
+                e.preventDefault();
+                const minY = -180;
+                const maxY = Math.min(minY, 180 - content.height);
+                content.y -= e.deltaY;
+                content.y = Phaser.Math.Clamp(content.y, maxY, minY);
+                updateBar();
+            };
+
+            const pointerMoveHandler = (pointer: Phaser.Input.Pointer) => {
+                if (!isDragging) return;
+                const barRange = 360 - bar.displayHeight;
+                bar.y = Phaser.Math.Clamp(barStartY + (pointer.y - dragStartY), -180, -180 + barRange);
+                content.y = -180 - (((bar.y + 180) / barRange) * (content.height - 360));
+            };
+
+            let isDragging = false, dragStartY = 0, barStartY = 0;
+            bar.on('pointerdown', (p: Phaser.Input.Pointer) => { isDragging = true; dragStartY = p.y; barStartY = bar.y; });
+            this.input.on('pointermove', pointerMoveHandler);
+            this.input.on('pointerup', () => isDragging = false);
+
+            window.addEventListener('keydown', scrollHandler);
+            window.addEventListener('wheel', wheelHandler, { passive: false });
+
+            setTimeout(() => {
+                const closeHandler = () => {
+                    dialog.setVisible(false);
+                    if (this.input.keyboard) this.input.keyboard.enabled = true;
+                    window.removeEventListener('keydown', scrollHandler);
+                    window.removeEventListener('wheel', wheelHandler);
+                    window.removeEventListener('keydown', keyCloseHandler);
+                    this.input.off('pointermove', pointerMoveHandler);
+                };
+                const keyCloseHandler = (e: KeyboardEvent) => {
+                    if (!['ArrowUp', 'ArrowDown', 'w', 's'].includes(e.key)) closeHandler();
+                };
+                window.addEventListener('keydown', keyCloseHandler);
+                bg.once('pointerdown', closeHandler);
+                bg.setInteractive();
+            }, 100);
+        };
+
+        trigger.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
+            pointer.event.stopPropagation();
+            openDialog();
+        });
 
         this.physics.add.overlap(this.player, trigger, () => {
-            if (dialog.visible) return;
-
-            if (Phaser.Input.Keyboard.JustDown(keys.E) || Phaser.Input.Keyboard.JustDown(keys.UP)) {
-                this.player.body.setVelocity(0, 0);
-                this.input.keyboard.enabled = false;
-                dialog.setVisible(true);
-                content.y = -180;
-
-                console.log(content.text)
-
-                const updateBar = () => {
-                    const range = content.height - 360;
-                    if (range <= 0) {
-                        bar.setVisible(false);
-                        track.setVisible(false);
-                        return;
-                    }
-                    const progress = (content.y + 180) / -range;
-                    const barRange = 360 - bar.displayHeight;
-                    bar.y = -180 + (progress * barRange);
-                };
-
-                bar.displayHeight = Math.max(20, (360 / content.height) * 360);
-                updateBar();
-
-                const scrollHandler = (e: KeyboardEvent) => {
-                    const scrollSpeed = 20;
-                    const minY = -180;
-                    const maxY = Math.min(minY, 180 - content.height);
-
-                    if (e.key === 'ArrowUp' || e.key === 'w') content.y += scrollSpeed;
-                    else if (e.key === 'ArrowDown' || e.key === 's') content.y -= scrollSpeed;
-
-                    content.y = Phaser.Math.Clamp(content.y, maxY, minY);
-                    updateBar();
-                };
-
-                const wheelHandler = (e: WheelEvent) => {
-                    e.preventDefault();
-                    const scrollSpeed = 1;
-                    const minY = -180;
-                    const maxY = Math.min(minY, 180 - content.height);
-
-                    content.y -= e.deltaY * scrollSpeed;
-                    content.y = Phaser.Math.Clamp(content.y, maxY, minY);
-                    updateBar();
-                };
-
-                let isDragging = false;
-                let dragStartY = 0;
-                let barStartY = 0;
-
-                bar.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
-                    isDragging = true;
-                    dragStartY = pointer.y;
-                    barStartY = bar.y;
-                });
-
-                this.input.on('pointermove', (pointer: Phaser.Input.Pointer) => {
-                    if (!isDragging) return;
-
-                    const deltaY = pointer.y - dragStartY;
-                    const newBarY = barStartY + deltaY;
-                    const barRange = 360 - bar.displayHeight;
-                    const clampedBarY = Phaser.Math.Clamp(newBarY, -180, -180 + barRange);
-
-                    bar.y = clampedBarY;
-
-                    const progress = (clampedBarY + 180) / barRange;
-                    const contentRange = content.height - 360;
-                    content.y = -180 - (progress * contentRange);
-                });
-
-                this.input.on('pointerup', () => {
-                    isDragging = false;
-                });
-
-                track.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
-                    const localY = pointer.y - this.cameras.main.centerY;
-                    const barRange = 360 - bar.displayHeight;
-                    const newBarY = Phaser.Math.Clamp(localY - bar.displayHeight / 2, -180, -180 + barRange);
-
-                    bar.y = newBarY;
-
-                    const progress = (newBarY + 180) / barRange;
-                    const contentRange = content.height - 360;
-                    content.y = -180 - (progress * contentRange);
-                });
-
-                window.addEventListener('keydown', scrollHandler);
-                window.addEventListener('wheel', wheelHandler, { passive: false });
-
-                setTimeout(() => {
-                    const closeHandler = (e: KeyboardEvent) => {
-                        if (['ArrowUp', 'ArrowDown', 'w', 's'].includes(e.key)) return;
-                        dialog.setVisible(false);
-                        this.input.keyboard.enabled = true;
-                        isDragging = false;
-                        window.removeEventListener('keydown', scrollHandler);
-                        window.removeEventListener('wheel', wheelHandler);
-                        window.removeEventListener('keydown', closeHandler);
-                        bar.off('pointerdown');
-                        track.off('pointerdown');
-                        this.input.off('pointermove');
-                        this.input.off('pointerup');
-                    };
-                    window.addEventListener('keydown', closeHandler);
-                }, 100);
+            if (keys && (Phaser.Input.Keyboard.JustDown(keys.E) || Phaser.Input.Keyboard.JustDown(keys.UP))) {
+                openDialog();
             }
         });
+
     }
 }

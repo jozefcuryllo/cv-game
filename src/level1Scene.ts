@@ -30,6 +30,7 @@ export default class Level1Scene extends BaseScene {
     protected maxLabels = 5;
 
     protected playlist: string[] = ['track1', 'track2'];
+    private spikePositions: number[] = [];
 
     protected milestones = [
         { year: "1993 - 2009", city: "Tarnow", description: "Early life", x: 200 },
@@ -102,6 +103,7 @@ export default class Level1Scene extends BaseScene {
     }
 
     create() {
+        super.create();
 
         const h = this.cameras.main.height;
 
@@ -148,6 +150,8 @@ export default class Level1Scene extends BaseScene {
                     const leftChar = colIndex > 0 ? lines[rowIndex][colIndex - 1] : ' ';
 
                     this.createSpike(x, adjustedY);
+
+                    this.spikePositions.push(x);
 
                     if (leftChar !== '^') {
 
@@ -208,24 +212,36 @@ export default class Level1Scene extends BaseScene {
         const h = this.cameras.main.height;
         const groundY = h - this.tile;
 
+        const isNearSpike = (x: number, distance: number) => {
+            return this.spikePositions.some(spikeX => Math.abs(x - spikeX) < distance);
+        };
+
         for (let x = 0; x < this.worldWidth; x += 250) {
             const randomX = x + Phaser.Math.Between(-200, 200);
+
+            if (isNearSpike(randomX, 7 * this.tile))
+                continue;
+
             this.add.image(randomX, groundY, 'bush')
                 .setOrigin(0.5, 1)
                 .setDepth(-1)
                 .setAlpha(0.8)
-                .setScrollFactor(0.95)
+                .setScrollFactor(1)
                 .setScale(Phaser.Math.Between(0.4, 4.0))
                 .setFlipX(Math.random() > 0.5);
         }
 
         for (let x = 0; x < this.worldWidth; x += 150) {
             const randomX = x + Phaser.Math.Between(-100, 100);
+
+            if (isNearSpike(randomX, 3 * this.tile))
+                continue;
+
             this.add.image(randomX, groundY, 'plant')
                 .setOrigin(0.5, 1)
                 .setDepth(-1)
                 .setAlpha(0.7)
-                .setScrollFactor(0.95)
+                .setScrollFactor(1)
                 .setScale(Phaser.Math.Between(0.9, 2.0))
                 .setFlipX(Math.random() > 0.5);
         }
@@ -336,14 +352,34 @@ export default class Level1Scene extends BaseScene {
             0
         );
         this.physics.add.existing(doorTrigger, true);
+        const enterKey = this.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.E);
+        const upKey = this.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.UP);
 
-        const enterKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.E);
-        const upKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.UP);
-        this.physics.add.overlap(this.player, doorTrigger, () => {
-            if (Phaser.Input.Keyboard.JustDown(enterKey) || Phaser.Input.Keyboard.JustDown(upKey)) {
+        const goToChurch = () => {
+            if (this.music) {
                 this.music.stop();
                 this.music.destroy();
-                this.scene.switch('ChurchScene');
+            }
+            this.scene.switch('ChurchScene');
+        };
+
+        doorTrigger
+            .setInteractive({ useHandCursor: true })
+            .setDepth(20);
+
+        doorTrigger.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
+            pointer.event.stopPropagation();
+            if (this.physics.overlap(this.player, doorTrigger)) {
+                goToChurch();
+            }
+        });
+
+        this.physics.add.overlap(this.player, doorTrigger, () => {
+            const eDown = enterKey && Phaser.Input.Keyboard.JustDown(enterKey);
+            const upDown = upKey && Phaser.Input.Keyboard.JustDown(upKey);
+
+            if (eDown || upDown) {
+                goToChurch();
             }
         }, undefined, this);
     }
