@@ -2,6 +2,7 @@ import MenuScene from './menu.js';
 import Level1Scene from './level1Scene.js';
 import Credits from './creditsScene.js';
 import ChurchScene from './churchScene.js';
+import { FinalScene } from './finalScene.js';
 
 const config: Phaser.Types.Core.GameConfig = {
     type: Phaser.AUTO,
@@ -20,7 +21,7 @@ const config: Phaser.Types.Core.GameConfig = {
             debug: false
         }
     },
-    scene: [MenuScene, Credits, Level1Scene, ChurchScene]
+    scene: [MenuScene, Credits, Level1Scene, ChurchScene, FinalScene]
 };
 
 new Phaser.Game(config);

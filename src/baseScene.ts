@@ -24,6 +24,7 @@ export abstract class BaseScene extends Phaser.Scene {
     protected jumpInProcess = false;
     protected maxLabels = 5;
     protected activeLabels: Phaser.GameObjects.Text[] = [];
+    protected playerCanMove: boolean = true;
 
     constructor(config?: string | Phaser.Types.Scenes.SettingsConfig | undefined) {
         super(config);
@@ -185,6 +186,8 @@ export abstract class BaseScene extends Phaser.Scene {
         }
 
         this.player.setTint(0xff0000);
+        this.registry.set('score', 0);
+        this.registry.set('labels', []);
         this.time.delayedCall(800, () => this.scene.restart());
     }
 
@@ -219,46 +222,48 @@ export abstract class BaseScene extends Phaser.Scene {
             Phaser.Input.Keyboard.JustDown(this.wasd.SPACE) ||
             (this.touchState.up && !this.jumpInProcess);
 
-        if (this.touchState.up) this.jumpInProcess = true;
-        else this.jumpInProcess = false;
+        if (this.playerCanMove) {
+            if (this.touchState.up) this.jumpInProcess = true;
+            else this.jumpInProcess = false;
 
-        const isCrouching = moveDown && body.blocked.down;
+            const isCrouching = moveDown && body.blocked.down;
 
-        if (isCrouching) {
-            body.setAccelerationX(0);
-            body.setVelocityX(0);
-            body.setDragX(1200);
-
-            if (moveLeft) this.player.flipX = true;
-            else if (moveRight) this.player.flipX = false;
-
-        } else {
-            body.setDragX(1500);
-            if (moveLeft) {
-                body.setAccelerationX(-accel);
-                this.player.flipX = true;
-            } else if (moveRight) {
-                body.setAccelerationX(accel);
-                this.player.flipX = false;
-            } else {
+            if (isCrouching) {
                 body.setAccelerationX(0);
+                body.setVelocityX(0);
+                body.setDragX(1200);
+
+                if (moveLeft) this.player.flipX = true;
+                else if (moveRight) this.player.flipX = false;
+
+            } else {
+                body.setDragX(1500);
+                if (moveLeft) {
+                    body.setAccelerationX(-accel);
+                    this.player.flipX = true;
+                } else if (moveRight) {
+                    body.setAccelerationX(accel);
+                    this.player.flipX = false;
+                } else {
+                    body.setAccelerationX(0);
+                }
             }
+
+            if (jumpJustPressed && body.blocked.down) {
+                body.setVelocityY(-700);
+            }
+
+            const isStillHoldingJump = this.cursors.up.isDown ||
+                this.wasd.W.isDown ||
+                this.wasd.SPACE.isDown ||
+                this.touchState.up;
+
+            if (!isStillHoldingJump && body.velocity.y < 0) {
+                body.setVelocityY(body.velocity.y * 0.4);
+            }
+
+            this.playAnimations(body, isCrouching);
         }
-
-        if (jumpJustPressed && body.blocked.down) {
-            body.setVelocityY(-700);
-        }
-
-        const isStillHoldingJump = this.cursors.up.isDown ||
-            this.wasd.W.isDown ||
-            this.wasd.SPACE.isDown ||
-            this.touchState.up;
-
-        if (!isStillHoldingJump && body.velocity.y < 0) {
-            body.setVelocityY(body.velocity.y * 0.4);
-        }
-
-        this.playAnimations(body, isCrouching);
     }
 
     protected playNextTrack() {

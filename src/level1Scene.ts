@@ -16,9 +16,12 @@ export default class Level1Scene extends BaseScene {
     protected ground!: Phaser.Physics.Arcade.StaticGroup;
     protected spikes!: Phaser.Physics.Arcade.StaticGroup;
     protected boxes!: Phaser.Physics.Arcade.StaticGroup;
+    private recruiter!: Phaser.Physics.Arcade.Sprite;
+    private recruiterTriggered = false;
+    private speechBubble!: Phaser.GameObjects.Container;
 
     protected isRespawning = false;
-    protected worldWidth = 25000;
+    protected worldWidth = 22600;
 
     protected playerHistory: PathPoint[] = [];
     protected historyLength: number = 20;
@@ -29,18 +32,18 @@ export default class Level1Scene extends BaseScene {
     private spikePositions: number[] = [];
 
     protected milestones = [
-        { year: "1993 - 2009", city: "Tarnow", description: "Early life", x: 200 },
-        { year: "2009 - 2012", city: "Tarnow", description: "Highschool - computer science specialisation", x: 2000 },
-        { year: "2012 - 2015", city: "Krakow (Cracow)", description: "Tadeusz Kosciuszko University - BSc (inzynier) - computer science", x: 3500 },
-        { year: "2015 - 2017", city: "Wroclaw", description: "Wroclaw University of Science and Technology - MSc (magister inzynier) - computer science", x: 7000 },
-        { year: "2016 - 2017", city: "Las Palmas de Gran Canaria (Spain)", description: "Erasmus+ programme - computer science", x: 9000 },
-        { year: "2017 - 2025", city: "Work history", description: "Details are hidden, generalized or mixed according to the NDAs. \nThe priority of achievements is mixed. \nSome clients or employers are hidden.", x: 12000 },
-        { year: "2017 - 2022", city: "Vexigo sp. z o.o.", description: "Katowice / Warsaw", x: 14000 },
-        { year: "2017 - 2022", city: "Overlord - self-employed", description: "Olecko", x: 15000 },
-        { year: "2022", city: "NASK - PIB", description: "Warsaw", x: 16000 },
-        { year: "2024 - 2025", city: "AGH University of Technology", description: "Krakow (Cracow)", x: 17000 },
-        { year: "2024 - 2025", city: "1000i sp. z o.o.", description: "Krakow (Cracow)", x: 18000 },
-
+        { year: "1993 - 2009", title: "Tarnow", description: "Early life", x: 200 },
+        { year: "2009 - 2012", title: "Tarnow", description: "Highschool - computer science specialisation", x: 2000 },
+        { year: "2012 - 2015", title: "Krakow (Cracow)", description: "Tadeusz Kosciuszko University - BSc (inzynier) - computer science", x: 3500 },
+        { year: "2015 - 2017", title: "Wroclaw", description: "Wroclaw University of Science and Technology - MSc (magister inzynier) - computer science", x: 7000 },
+        { year: "2016 - 2017", title: "Las Palmas de Gran Canaria (Spain)", description: "Erasmus+ programme - computer science", x: 9000 },
+        { year: "2017 - 2025", title: "Work history", description: "Details are hidden, generalized or mixed according to the NDAs. \nThe priority of achievements is mixed. \nSome clients or employers are hidden.", x: 12000 },
+        { year: "2017 - 2022", title: "Vexigo sp. z o.o.", description: "Katowice / Warsaw", x: 14000 },
+        { year: "2017 - 2022", title: "Overlord - self-employed", description: "Olecko", x: 15000 },
+        { year: "2022", title: "NASK - PIB", description: "Warsaw", x: 16000 },
+        { year: "2024 - 2025", title: "AGH University of Technology", description: "Krakow (Cracow)", x: 17000 },
+        { year: "2024 - 2025", title: "1000i sp. z o.o.", description: "Krakow (Cracow)", x: 18000 },
+        { year: "2024 - ", title: "Thailand", description: "" },
     ];
 
     constructor() {
@@ -88,6 +91,16 @@ export default class Level1Scene extends BaseScene {
         files.forEach(file => {
             this.load.image(file, `${path}${file}.png`);
         });
+
+        this.load.spritesheet('recruiter', 'assets/sprites/ddc_graphics/walk_right.png', {
+            frameWidth: 32,
+            frameHeight: 60
+        });
+        this.load.spritesheet('recruiter-idle', 'assets/sprites/ddc_graphics/stand_right.png', {
+            frameWidth: 32,
+            frameHeight: 60
+        });
+
         this.load.audio('track1', 'assets/audio/track1.mp3');
         this.load.audio('track2', 'assets/audio/track2.mp3');
 
@@ -105,7 +118,7 @@ export default class Level1Scene extends BaseScene {
         this.physics.world.setBounds(0, 0, this.worldWidth, h + 200);
         this.cameras.main.setBounds(0, 0, this.worldWidth, h);
 
-        this.createPlayer(150, h - 200);
+        this.createPlayer(300, h - 200);
 
         this.ground = this.physics.add.staticGroup();
         this.boxes = this.physics.add.staticGroup();
@@ -188,10 +201,13 @@ export default class Level1Scene extends BaseScene {
         this.catNameText.setVisible(false);
 
         this.createCatAnimations();
+        this.createRecruiter(22000, h - 230);
 
         this.physics.add.collider(this.player, this.ground);
         this.physics.add.collider(this.player, this.boxes);
+        this.physics.add.collider(this.recruiter, this.ground);
         this.physics.add.overlap(this.player, this.spikes, this.handleDeath, undefined, this);
+
 
         this.playNextTrack();
 
@@ -384,7 +400,7 @@ export default class Level1Scene extends BaseScene {
         this.add.text(
             x,
             100,
-            `${milestone.year}\n${milestone.city}`,
+            `${milestone.year}\n${milestone.title}`,
             {
                 fontSize: '40px',
                 color: '#ffffff',
@@ -477,7 +493,6 @@ export default class Level1Scene extends BaseScene {
         super.handleDeath();
 
         this.playerHistory = [];
-        this.registry.set('score', 0);
 
         this.isRespawning = false;
     }
@@ -549,6 +564,11 @@ export default class Level1Scene extends BaseScene {
         }
 
 
+        const distance = Phaser.Math.Distance.Between(this.player.x, this.player.y, this.recruiter.x, this.recruiter.y);
+
+        if (!this.recruiterTriggered && distance < 800) {
+            this.triggerRecruiterEvent();
+        }
     }
 
     createCatAnimations() {
@@ -581,5 +601,108 @@ export default class Level1Scene extends BaseScene {
         } else {
             this.cat.play('cat_idle', true);
         }
+    }
+
+    protected createRecruiter(x: number, y: number) {
+        this.anims.create({
+            key: 'recruiter-walk',
+            frames: this.anims.generateFrameNumbers('recruiter', { frames: [0, 1, 3, 2, 3] }),
+            frameRate: 4,
+            repeat: -1
+        });
+
+        this.anims.create({
+            key: 'recruiter-idle',
+            frames: this.anims.generateFrameNumbers('recruiter-idle', { frames: [0] }),
+            frameRate: 1
+        });
+
+
+        this.recruiter = this.physics.add.sprite(x, y, 'recruiter')
+            .setScale(2.5);
+
+        (this.recruiter.body as Phaser.Physics.Arcade.Body)!.setAllowGravity(true);
+
+        this.physics.add.collider(this.recruiter, this.ground);
+    }
+
+    protected triggerRecruiterEvent() {
+        this.recruiterTriggered = true;
+        this.playerCanMove = false;
+
+        this.player.setVelocity(0, 0);
+        this.player.setAcceleration(0, 0);
+
+        if (this.player.body) {
+            (this.player.body as Phaser.Physics.Arcade.Body).allowGravity = false;
+        }
+
+        if (this.input.keyboard) {
+            this.input.keyboard.enabled = false;
+        }
+
+        if (this.touchState) {
+            const state = this.touchState;
+            Object.keys(state).forEach(key => state[key] = false);
+        }
+
+        this.player.play('idle', true);
+
+        const targetX = this.player.x + 300;
+
+        this.recruiter.play('recruiter-walk', true);
+
+        this.tweens.add({
+            targets: this.recruiter,
+            x: targetX,
+            duration: 2000,
+            ease: 'Power1',
+            onComplete: () => {
+                this.recruiter.stop();
+                this.recruiter.setTexture('recruiter-idle')
+                this.recruiter.play('recruiter-idle');
+                this.showSpeechBubble();
+            }
+        });
+    }
+
+    protected showSpeechBubble() {
+        const bx = this.recruiter.x - 50;
+        const by = this.recruiter.y - 120;
+
+        const bubble = this.add.graphics();
+        bubble.fillStyle(0xffffff, 1);
+        bubble.fillRoundedRect(0, 0, 240, 60, 10);
+        bubble.fillTriangle(20, 60, 40, 60, 40, 80);
+
+        const text = this.add.text(110, 30, " I want to hire you!", {
+            fontSize: '18px',
+            color: '#000',
+            fontStyle: 'bold'
+        }).setOrigin(0.5);
+
+        this.speechBubble = this.add.container(bx, by, [bubble, text]);
+        this.speechBubble.setAlpha(0);
+
+        this.tweens.add({
+            targets: this.speechBubble,
+            alpha: 1,
+            y: by - 20,
+            duration: 2000,
+            onComplete: () => {
+                if (this.music) {
+                    this.music.stop();
+                    this.music.destroy();
+                }
+
+                this.registry.set('score', 0);
+                this.registry.set('labels', []);
+
+                this.scene.remove('ChurchScene');
+                this.scene.remove('Level1Scene');
+                
+                this.scene.start('FinalScene');
+            }
+        });
     }
 }
