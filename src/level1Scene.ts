@@ -1,5 +1,5 @@
 import 'phaser';
-import { predefinedSpikes } from './level1_config.js';
+import { predefinedSpikes } from './level1Config.js';
 import { BaseScene } from './baseScene.js';
 
 interface PathPoint {
@@ -126,6 +126,7 @@ export default class Level1Scene extends BaseScene {
         let starsIndex = 0;
         let spikesIndex = 0;
         let infosIndex = 1;
+        let thoughtsIndex = 0;
 
         for (let colIndex = 0; colIndex < colCount; colIndex++) {
             for (let rowIndex = 0; rowIndex < rowCount; rowIndex++) {
@@ -140,7 +141,9 @@ export default class Level1Scene extends BaseScene {
                     this.createStar(x, adjustedY, starsIndex++);
                 } else if (char === '#') {
                     this.createBox(x, adjustedY);
-                } else if (char === '=') {
+                }else if (char === 'T') {
+                    this.createThought(x, thoughtsIndex++);
+                }else if (char === '=') {
                     this.createGround(x, adjustedY);
                 } else if (char === '^') {
                     const leftChar = colIndex > 0 ? lines[rowIndex][colIndex - 1] : ' ';

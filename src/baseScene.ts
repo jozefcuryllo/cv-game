@@ -1,4 +1,4 @@
-import { predefinedInfos, predefinedStars } from "./level1_config.js";
+import { predefinedInfos, predefinedStars, predefinedThoughts } from "./level1Config.js";
 
 export abstract class BaseScene extends Phaser.Scene {
     protected player!: Phaser.Physics.Arcade.Sprite;
@@ -554,5 +554,62 @@ export abstract class BaseScene extends Phaser.Scene {
         const newScore = this.registry.get('score') + 1;
         this.registry.set('score', newScore);
         this.scoreText.setText(`Score: ${newScore}`);
+    }
+
+    protected createThought(x: number, index: number) {
+        const text = predefinedThoughts[index] ?? '';
+
+        const trigger = this.add.rectangle(x, this.player.y, 50, 2000, 0xffffff, 0);
+        this.physics.add.existing(trigger, true);
+
+        this.physics.add.overlap(this.player, trigger, () => {
+            trigger.destroy();
+
+            const spawnY = this.player.y - 180;
+            const thoughtContainer = this.add.container(x, spawnY).setDepth(200).setAlpha(0);
+
+            const header = this.add.text(0, 0, "INTERNAL MONOLOGUE", {
+                fontSize: '11px',
+                color: '#ffffff',
+                fontFamily: 'Arial',
+                letterSpacing: 4
+            }).setOrigin(0.5);
+
+            const line = this.add.graphics();
+            line.lineStyle(1.5, 0xffffff, 0.8);
+            line.lineBetween(-60, 15, 60, 15);
+
+            const thoughtText = this.add.text(0, 35, text, {
+                fontSize: '18px',
+                color: '#ffffff',
+                fontFamily: 'Georgia, serif',
+                fontStyle: 'italic',
+                align: 'center',
+                wordWrap: { width: 320 },
+                lineSpacing: 8
+            }).setOrigin(0.5, 0);
+
+            thoughtContainer.add([header, line, thoughtText]);
+
+            this.tweens.add({
+                targets: thoughtContainer,
+                y: spawnY - 30,
+                alpha: 1,
+                duration: 800,
+                ease: 'Power2'
+            });
+
+            this.time.delayedCall(6000, () => {
+                if (this.scene.isActive()) {
+                    this.tweens.add({
+                        targets: thoughtContainer,
+                        alpha: 0,
+                        y: spawnY - 60,
+                        duration: 1000,
+                        onComplete: () => thoughtContainer.destroy()
+                    });
+                }
+            });
+        });
     }
 }

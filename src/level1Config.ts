@@ -31,7 +31,7 @@ let predefinedStars = [
     "Language processing",
     // --- uni lpdgc
     "Advanced PHP",
-    "Advanced JavaScript", 
+    "Advanced JavaScript",
     "Docker",
     "NodeJS",
     "MongoDB",
@@ -109,4 +109,12 @@ let predefinedInfos = [
     "Thailand is a country with a long sense of continuity, shaped by the fact that it was never formally colonized. Its language and writing system reflect deep historical roots, and everyday communication relies heavily on context and tone.\n\nThe country functions as a constitutional monarchy, where tradition still plays an important cultural role.\nSocial life places strong emphasis on harmony, respect, and consideration for others, which is visible in daily interactions."
 ];
 
-export { predefinedStars, predefinedSpikes, predefinedInfos };
+let predefinedThoughts = [
+    "The most reliable dependency is the one you never added.",
+    "Equality isn't a feature request; it's a core requirement.",
+    "Patterns are just suggestions, not laws.",
+    "Real productivity isn't measured in ceremonies or tickets, but in the clarity and stability of the shipping code.",
+    "A good night's sleep often solves a bug that ten cups of coffee couldn't."
+];
+
+export { predefinedStars, predefinedSpikes, predefinedInfos, predefinedThoughts };
