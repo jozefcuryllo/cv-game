@@ -55,22 +55,22 @@ export default class Level1Scene extends BaseScene {
 
         this.load.text('levelData', 'assets/level.txt');
 
-        this.load.spritesheet('cat', '/assets/sprites/cat sprite/catspritesx4_no_bg.gif', { frameWidth: 84, frameHeight: 68 });
+        this.load.spritesheet('cat', '/assets/sprites/catSprite/catspritesx4_no_bg.gif', { frameWidth: 84, frameHeight: 68 });
 
-        this.load.image('grassMid', '/assets/sprites/Platformer Art Complete Pack/Base pack/Tiles/grassMid.png');
-        this.load.image('grassCenter', '/assets/sprites/Platformer Art Complete Pack/Base pack/Tiles/grassCenter.png');
-        this.load.image('spikes', '/assets/sprites/Platformer Art Complete Pack/Base pack/Items/spikes.png');
-        this.load.image('bush', '/assets/sprites/Platformer Art Complete Pack/Base pack/Items/bush.png');
-        this.load.image('plant', '/assets/sprites/Platformer Art Complete Pack/Base pack/Items/plant.png');
+        this.load.image('grassMid', '/assets/sprites/PlatformerArtCompletePack/BasePack/Tiles/grassMid.png');
+        this.load.image('grassCenter', '/assets/sprites/PlatformerArtCompletePack/BasePack/Tiles/grassCenter.png');
+        this.load.image('spikes', '/assets/sprites/PlatformerArtCompletePack/BasePack/Items/spikes.png');
+        this.load.image('bush', '/assets/sprites/PlatformerArtCompletePack/BasePack/Items/bush.png');
+        this.load.image('plant', '/assets/sprites/PlatformerArtCompletePack/BasePack/Items/plant.png');
 
-        this.load.image('box', '/assets/sprites/Platformer Art Complete Pack/Base pack/Tiles/box.png');
-        this.load.image('boxAlt', '/assets/sprites/Platformer Art Complete Pack/Base pack/Tiles/boxAlt.png');
+        this.load.image('box', '/assets/sprites/PlatformerArtCompletePack/BasePack/Tiles/box.png');
+        this.load.image('boxAlt', '/assets/sprites/PlatformerArtCompletePack/BasePack/Tiles/boxAlt.png');
 
-        this.load.image('cloud1', '/assets/sprites/Platformer Art Complete Pack/Base pack/Items/cloud1.png');
-        this.load.image('cloud2', '/assets/sprites/Platformer Art Complete Pack/Base pack/Items/cloud2.png');
-        this.load.image('cloud3', '/assets/sprites/Platformer Art Complete Pack/Base pack/Items/cloud3.png');
+        this.load.image('cloud1', '/assets/sprites/PlatformerArtCompletePack/BasePack/Items/cloud1.png');
+        this.load.image('cloud2', '/assets/sprites/PlatformerArtCompletePack/BasePack/Items/cloud2.png');
+        this.load.image('cloud3', '/assets/sprites/PlatformerArtCompletePack/BasePack/Items/cloud3.png');
 
-        const path = '/assets/sprites/Platformer Art Complete Pack/Buildings expansion/Tiles/';
+        const path = '/assets/sprites/PlatformerArtCompletePack/BuildingsExpansion/Tiles/';
         const files = [
             'doorKnob', 'doorOpen', 'doorOpenTop', 'doorTop',
             'houseBeige', 'houseBeigeAlt', 'houseBeigeAlt2',

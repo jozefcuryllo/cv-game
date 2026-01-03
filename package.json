@@ -20,9 +20,6 @@
     "vite": "^7.3.0"
   },
   "dependencies": {
-    "howler": "^2.2.4",
-    "kaboom": "^3000.1.17",
-    "localforage": "^1.10.0",
     "phaser": "^3.90.0"
   }
 }

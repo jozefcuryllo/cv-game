@@ -14,7 +14,7 @@ export default class ChurchScene extends BaseScene {
     preload() {
         super.preload();
 
-        const path = '/assets/sprites/Platformer Art Complete Pack/Buildings expansion/Tiles/';
+        const path = '/assets/sprites/PlatformerArtCompletePack/BuildingsExpansion/Tiles/';
         const files = [
             'houseGray', 'houseGrayAlt', 'houseGrayAlt2',
             'houseGrayBottomLeft', 'houseGrayBottomMid', 'houseGrayBottomRight',
