@@ -33,17 +33,17 @@ export default class Level1Scene extends BaseScene {
 
     protected milestones = [
         { year: "1993 - 2009", title: "Tarnow", description: "Early life", x: 200 },
-        { year: "2009 - 2012", title: "Tarnow", description: "Highschool - computer science specialisation", x: 2000 },
-        { year: "2012 - 2015", title: "Krakow (Cracow)", description: "Tadeusz Kosciuszko University - BSc (inzynier) - computer science", x: 3500 },
-        { year: "2015 - 2017", title: "Wroclaw", description: "Wroclaw University of Science and Technology - MSc (magister inzynier) - computer science", x: 7000 },
-        { year: "2016 - 2017", title: "Las Palmas de Gran Canaria (Spain)", description: "Erasmus+ programme - computer science", x: 9000 },
-        { year: "2017 - 2025", title: "Work history", description: "Details are hidden, generalized or mixed according to the NDAs. \nThe priority of achievements is mixed. \nSome clients or employers are hidden.", x: 12000 },
-        { year: "2017 - 2022", title: "Vexigo sp. z o.o.", description: "Katowice / Warsaw", x: 14000 },
-        { year: "2017 - 2022", title: "Overlord - self-employed", description: "Olecko", x: 15000 },
-        { year: "2022", title: "NASK - PIB", description: "Warsaw", x: 16000 },
-        { year: "2024 - 2025", title: "AGH University of Technology", description: "Krakow (Cracow)", x: 17000 },
-        { year: "2024 - 2025", title: "1000i sp. z o.o.", description: "Krakow (Cracow)", x: 18000 },
-        { year: "2024 - ", title: "Thailand", description: "" },
+        { year: "2009 - 2012", title: "Tarnow", description: "Highschool\nComputer Science Profile", x: 2000 },
+        { year: "2012 - 2016", title: "Cracow", description: "Cracow University of Technology\nBSc (inzynier) in Computer Science", x: 3500 },
+        { year: "2016 - 2017", title: "Wroclaw", description: "Wroclaw University of Science and Technology\nMSc (magister inzynier) in Computer Science", x: 7000 },
+        { year: "2016 - 2017", title: "Las Palmas de Gran Canaria (Spain)", description: "Erasmus+ University Exchange", x: 9000 },
+        { year: "2017 - 2026", title: "Professional Career", description: "Details are hidden, generalized or mixed according to the NDAs.\nSome clients or employers are hidden.", x: 12000 },
+        { year: "2017 - 2022", title: "Vexigo", description: "Fullstack Developer", x: 14000 },
+        { year: "2017 - 2022", title: "Overlord", description: "Self-employed / Software Consulting", x: 15000 },
+        { year: "2022", title: "NASK - PIB", description: "National Research Institute", x: 16000 },
+        { year: "2024 - 2025", title: "AGH University of Technology", description: "Software Engineering", x: 17000 },
+        { year: "2024 - 2025", title: "1000i", description: "Software Engineering", x: 18000 },
+        { year: "2024 - 2026", title: "Thailand", description: "Digital Nomad / Remote Work" },
     ];
 
     constructor() {
@@ -52,12 +52,6 @@ export default class Level1Scene extends BaseScene {
 
     preload() {
         super.preload();
-
-        const loadingText = this.add.text(this.cameras.main.centerX, this.cameras.main.centerY, 'LOADING...', {
-            fontSize: '48px',
-            fontFamily: 'Arial',
-            color: '#ffffff'
-        }).setOrigin(0.5);
 
         this.load.text('levelData', 'assets/level.txt');
 
@@ -103,10 +97,6 @@ export default class Level1Scene extends BaseScene {
 
         this.load.audio('track1', 'assets/audio/track1.mp3');
         this.load.audio('track2', 'assets/audio/track2.mp3');
-
-        this.load.on('complete', function () {
-            loadingText.destroy()
-        });
     }
 
     create() {
@@ -115,7 +105,7 @@ export default class Level1Scene extends BaseScene {
         const h = this.cameras.main.height;
 
         this.cameras.main.setBackgroundColor('#6db3f2');
-        this.physics.world.setBounds(0, 0, this.worldWidth, h + 200);
+        this.physics.world.setBounds(0, 0, this.worldWidth, h + 200, true, true, false);
         this.cameras.main.setBounds(0, 0, this.worldWidth, h);
 
         this.createPlayer(300, h - 200);

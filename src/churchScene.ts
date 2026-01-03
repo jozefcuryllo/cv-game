@@ -124,11 +124,16 @@ export default class ChurchScene extends BaseScene {
         this.physics.add.collider(this.player, worldBounds);
         this.physics.world.setBounds(0, y - (h * this.tile), 2000, h * this.tile + this.tile);
 
-        for (let i = 200; i < this.worldWidth; i += 600) {
-            this.add.image(i, y - 6 * this.tile, 'windowCheckered')
-                .setOrigin(0.5)
-                .setDepth(-1);
-        }
+
+        this.add.image(300, y - 6 * this.tile, 'windowCheckered')
+            .setOrigin(0.5)
+            .setDepth(-1);
+        this.add.image(700, y - 6 * this.tile, 'windowCheckered')
+            .setOrigin(0.5)
+            .setDepth(-1);
+        this.add.image(1100, y - 6 * this.tile, 'windowCheckered')
+            .setOrigin(0.5)
+            .setDepth(-1);
     }
 
 
@@ -139,7 +144,7 @@ export default class ChurchScene extends BaseScene {
             .setScale(1.5, 1.5)
             .setDepth(0);
 
-        this.add.image(x, y, 'doorKnob')
+        const doorKnob = this.add.image(x, y, 'doorKnob')
             .setOrigin(1, 1)
             .setScale(1.5, 1.5)
             .setDepth(0);
@@ -147,11 +152,11 @@ export default class ChurchScene extends BaseScene {
         const doorTrigger = this.add.rectangle(
             x,
             y,
-            this.tile,
-            this.tile * 2,
+            doorKnob.displayWidth,
+            doorKnob.displayHeight,
             0x000000,
             0
-        );
+        ).setOrigin(1, 1);
         this.physics.add.existing(doorTrigger, true);
 
         const enterKey = this.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.E);

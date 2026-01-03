@@ -31,7 +31,7 @@ let predefinedStars = [
     "Language processing",
     // --- uni lpdgc
     "Advanced PHP",
-    "Advanced JavaScript", ,
+    "Advanced JavaScript", 
     "Docker",
     "NodeJS",
     "MongoDB",
@@ -63,12 +63,12 @@ let predefinedSpikes = [
     "Complex Logic",
     "New Stack",
     "Eye Strain",
-    "Big Refactor",
+    "Integrals & Derivatives",
     "Brain Fog",
     "Late Hours",
     "Intensive Workload",
     "Long Study Hours",
-    "Deep Focus",
+    "Big Refactor",
     "Edge Cases",
     "Mental Load",
     "Energy Drain",
@@ -90,11 +90,21 @@ let predefinedSpikes = [
     "Scalability Peak",
     "Total Fatigue",
     "Critical Update",
-    "Need a Break"
+    "Need a Break",
+    "Memory Leak",
+    "Race Conditions",
+    "Infrastructure Scaling",
+    "Regression Bugs",
+    "Cross-browser Quirk",
+    "Async Coordination"
 ];
 
 let predefinedInfos = [
-    "Pipe organs were the most complex machines built by humans before the invention of the steam engine. They combine mechanics, acoustics, and architecture into a single instrument. \nAn organist plays them with both hands and feet, while also controlling numerous stops and switches that shape the sound.\n\nThis unique coordination strongly engages the brain, enhancing cognition, focus, and spatial thinking.\n\nI was an organist for over than 5 years. I've also created a website Musicam Sacram, to gather polish organists in one place.Nowadays, it's one of the biggest websites of that topic in Europe.",
+    "Pipe organs were the most complex machines built by humans before the invention of the steam engine. They combine mechanics, acoustics, and architecture into a single instrument. An organist plays them with both hands and feet, while also controlling numerous stops and switches that shape the sound.\n\nThis unique coordination strongly engages the brain, enhancing cognition, focus, and spatial thinking.\n\nI graduated from the Diocesan Organist School in Tarnów and was an active organist for over 5 years. I also created Musicam Sacram, a platform designed to gather the community of Polish organists. Today, it has grown into one of the largest websites dedicated to this field in Europe.",
+    "III LO in Tarnów is the top-ranked high school in the city and one of the best in the Lesser Poland region.\n\nIt is widely recognized for its high academic standards and a strong focus on STEM subjects (Science, Technology, Engineering, and Mathematics), maintaining a long-standing tradition of preparing students for leading technical universities like AGH.",
+    "Cracow University of Technology (PK) is a prominent engineering hub located in the heart of Poland's historic capital. Studying Computer Science here meant balancing rigorous academic theory with the reality of building functional systems, all within the unique atmosphere of a city that blends medieval history with a rapidly growing global tech scene.\n\nI spent my time here grinding through low-level programming, discrete math, and system design to get my BSc (Inżynier) degree. It was three and a half years of learning how things actually work under the hood-from memory management to building stable software architectures.",
+    "The Wrocław University of Science and Technology (PWr) is widely considered one of the best technical universities in Poland, known for its massive campus and strong ties to the industry. It’s a place where the scale of projects increases, and the focus shifts toward more specialized, high-level engineering challenges.\n\nI moved here to complete my Master’s degree (Magister Inżynier), focusing on more advanced topics in Computer Science. Compared to the bachelor's level, it was less about learning how to code and more about system optimization, research, and managing complex software environments in one of Poland's biggest tech cities.",
+    "Studying at Universidad de Las Palmas de Gran Canaria (ULPGC) through the Erasmus program was a complete shift in environment. Located on a volcanic island in the Atlantic, the university offers a unique setting where academic life is shaped by the island's geography and its role as a bridge between Europe and Africa.\n\nThe experience was less about the typical Polish academic grind and more about adaptability and international collaboration. Navigating a different educational system in a foreign language while living in a multicultural hub provided a perspective on engineering and life that you simply can't get in a local classroom.",
     "From this point onward, some details regarding my skills, projects, and achievements are intentionally blended, generalized, or omitted. Selected employers and clients are not listed by name. This is done in accordance with non-disclosure agreements (NDAs) and confidentiality obligations, and demonstrates my respect for privacy, security, and professional responsibility.\n\nAny attribution of achievements, challenges, or problems to specific roles or projects is intentionally randomized and should not be interpreted as a literal or direct association.",
     "Thailand is a country with a long sense of continuity, shaped by the fact that it was never formally colonized. Its language and writing system reflect deep historical roots, and everyday communication relies heavily on context and tone.\n\nThe country functions as a constitutional monarchy, where tradition still plays an important cultural role.\nSocial life places strong emphasis on harmony, respect, and consideration for others, which is visible in daily interactions."
 ];

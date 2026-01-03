@@ -31,10 +31,21 @@ export abstract class BaseScene extends Phaser.Scene {
     }
 
     preload() {
+        const loadingText = this.add.text(this.cameras.main.centerX, this.cameras.main.centerY, 'LOADING...', {
+            fontSize: '48px',
+            fontFamily: 'Arial',
+            color: '#ffffff'
+        }).setOrigin(0.5);
+
+
         this.load.spritesheet('player', '/assets/sprites/maleBase/full/advnt_full.png', { frameWidth: 32, frameHeight: 64 });
         this.load.image('star', '/assets/sprites/Platformer Art Complete Pack/Base pack/Items/star.png');
         this.load.audio('star_sound', 'assets/audio/star.mp3');
         this.load.image('sign', '/assets/sprites/Platformer Art Complete Pack/Base pack/Tiles/sign.png');
+
+        this.load.on('complete', function () {
+            loadingText.destroy()
+        });
     }
 
     protected create() {
@@ -53,15 +64,22 @@ export abstract class BaseScene extends Phaser.Scene {
             .setDepth(200);
 
         muteBtn.on('pointerdown', () => {
-            const old = this.sound.mute;
-            this.sound.mute = !old;
-            muteBtn.setText(!old ? '🔇' : '🔊');
+            const newVal = this.switchMute();
+            muteBtn.setText(newVal ? '🔇' : '🔊');
         });
+
+        if (this.input.keyboard) {
+            this.input.keyboard.on('keydown-M', () => {
+                const newVal = this.switchMute();
+                muteBtn.setText(newVal ? '🔇' : '🔊');
+            });
+        }
 
         const menuBtn = this.add.text(w - margin - 70, margin, 'MENU', {
             fontSize: '24px',
             color: '#ffffff',
             backgroundColor: '#000000aa',
+            fixedHeight: muteBtn.displayHeight,
             padding: { x: 10, y: 10 }
         })
             .setOrigin(1, 0)
@@ -127,30 +145,32 @@ export abstract class BaseScene extends Phaser.Scene {
             this.cursors = this.input.keyboard.createCursorKeys();
             this.wasd = this.input.keyboard.addKeys('W,A,S,D,SPACE');
             this.esc = this.input.keyboard.addKeys('ESC');
-
-            this.input.keyboard.on('keydown-M', () => {
-                this.sound.mute = !this.sound.mute;
-
-                const status = !this.sound.mute ? 'MUTED' : 'UNMUTED';
-                const indicator = this.add.text(
-                    this.cameras.main.width / 2, 50,
-                    status,
-                    {
-                        fontSize: '24px',
-                        color: '#ff4444',
-                        fontStyle: 'bold',
-                        stroke: '#000000',
-                        strokeThickness: 4
-                    })
-                    .setOrigin(0.5)
-                    .setScrollFactor(0);
-
-                this.time.delayedCall(1000, () => indicator.destroy());
-            });
         }
 
         this.physics.add.overlap(this.player, this.stars, this.collectStar as Phaser.Types.Physics.Arcade.ArcadePhysicsCallback, undefined, this);
+    }
 
+    protected switchMute(): boolean {
+        const old = this.sound.mute;
+        this.sound.mute = !this.sound.mute;
+
+        const status = !this.sound.mute ? 'MUTED' : 'UNMUTED';
+        const indicator = this.add.text(
+            this.cameras.main.width / 2, 50,
+            status,
+            {
+                fontSize: '24px',
+                color: '#ff4444',
+                fontStyle: 'bold',
+                stroke: '#000000',
+                strokeThickness: 4
+            })
+            .setOrigin(0.5)
+            .setScrollFactor(0);
+
+        this.time.delayedCall(1000, () => indicator.destroy());
+
+        return !old;
     }
 
     protected createAnimations() {
@@ -188,6 +208,7 @@ export abstract class BaseScene extends Phaser.Scene {
         this.player.setTint(0xff0000);
         this.registry.set('score', 0);
         this.registry.set('labels', []);
+        this.refreshLabelDisplay()
         this.time.delayedCall(800, () => this.scene.restart());
     }
 
@@ -321,6 +342,11 @@ export abstract class BaseScene extends Phaser.Scene {
         const openDialog = () => {
             if (dialog.visible) return;
 
+            const speed = Math.sqrt(
+                Math.pow((this.player.body as Phaser.Physics.Arcade.Body)?.velocity.x, 2) + Math.pow((this.player.body as Phaser.Physics.Arcade.Body)?.velocity?.y, 2)
+            );
+            if (speed > 200) return;
+
             this.player.setVelocity(0, 0);
             if (this.input.keyboard) this.input.keyboard.enabled = false;
 
@@ -373,7 +399,10 @@ export abstract class BaseScene extends Phaser.Scene {
             setTimeout(() => {
                 const closeHandler = () => {
                     dialog.setVisible(false);
-                    if (this.input.keyboard) this.input.keyboard.enabled = true;
+                    if (this.input.keyboard) {
+                        this.input.keyboard.enabled = true;
+                        this.input.keyboard.resetKeys();
+                    }
                     window.removeEventListener('keydown', scrollHandler);
                     window.removeEventListener('wheel', wheelHandler);
                     window.removeEventListener('keydown', keyCloseHandler);
@@ -491,7 +520,7 @@ export abstract class BaseScene extends Phaser.Scene {
         this.activeLabels.forEach(l => l.destroy());
         this.activeLabels = [];
 
-        const labelData: string[] = this.registry.get('labelData') || [];
+        const labelData: string[] = this.registry.get('labels') || [];
 
         labelData.forEach((text, index) => {
             const label = this.add.text(startX, startY + (index * spacing), text, {
