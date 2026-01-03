@@ -14,7 +14,7 @@ export default class ChurchScene extends BaseScene {
     preload() {
         super.preload();
 
-        const path = '/assets/sprites/PlatformerArtCompletePack/BuildingsExpansion/Tiles/';
+        const path = 'assets/sprites/PlatformerArtCompletePack/BuildingsExpansion/Tiles/';
         const files = [
             'houseGray', 'houseGrayAlt', 'houseGrayAlt2',
             'houseGrayBottomLeft', 'houseGrayBottomMid', 'houseGrayBottomRight',
@@ -27,8 +27,8 @@ export default class ChurchScene extends BaseScene {
             this.load.image(file, `${path}${file}.png`);
         });
 
-        this.load.image('organ1', '/assets/sprites/organ3.png');
-        this.load.audio('fugue1', '/assets/audio/fugueinbminor/FugueInBMinor.flac');
+        this.load.image('organ1', 'assets/sprites/organ3.png');
+        this.load.audio('fugue1', 'assets/audio/fugueinbminor/FugueInBMinor.flac');
     }
 
     create() {

@@ -38,10 +38,10 @@ export abstract class BaseScene extends Phaser.Scene {
         }).setOrigin(0.5);
 
 
-        this.load.spritesheet('player', '/assets/sprites/maleBase/full/advnt_full.png', { frameWidth: 32, frameHeight: 64 });
-        this.load.image('star', '/assets/sprites/PlatformerArtCompletePack/BasePack/Items/star.png');
+        this.load.spritesheet('player', 'assets/sprites/maleBase/full/advnt_full.png', { frameWidth: 32, frameHeight: 64 });
+        this.load.image('star', 'assets/sprites/PlatformerArtCompletePack/BasePack/Items/star.png');
         this.load.audio('star_sound', 'assets/audio/star.mp3');
-        this.load.image('sign', '/assets/sprites/PlatformerArtCompletePack/BasePack/Tiles/sign.png');
+        this.load.image('sign', 'assets/sprites/PlatformerArtCompletePack/BasePack/Tiles/sign.png');
 
         this.load.on('complete', function () {
             loadingText.destroy()
