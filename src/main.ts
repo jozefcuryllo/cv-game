@@ -21,6 +21,12 @@ const config: Phaser.Types.Core.GameConfig = {
             debug: false
         }
     },
+    scale: {
+        mode: Phaser.Scale.FIT,
+        autoCenter: Phaser.Scale.CENTER_BOTH,
+        width: 1280,
+        height: 720,
+    },
     scene: [MenuScene, Credits, Level1Scene, ChurchScene, FinalScene]
 };
 

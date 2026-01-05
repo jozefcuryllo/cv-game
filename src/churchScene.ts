@@ -28,7 +28,7 @@ export default class ChurchScene extends BaseScene {
         });
 
         this.load.image('organ1', 'assets/sprites/organ3.png');
-        this.load.audio('fugue1', 'assets/audio/fugueinbminor/FugueInBMinor.flac');
+        this.load.audio('fugue1', 'assets/audio/fugueinbminor/FugueInBMinor.mp3');
     }
 
     create() {
@@ -41,17 +41,10 @@ export default class ChurchScene extends BaseScene {
         const bottomY = h;
         this.createPlayer(250, bottomY - 400);
 
-        const centerX = this.cameras.main.centerX - (12 * this.tile) / 2;
-
         this.createSign(600, bottomY - this.tile / 2, 0);
         this.createInterior(bottomY);
-        this.createOrgans(centerX + 17 * this.tile, bottomY - this.tile / 2);
-
-        const doorX = centerX + this.tile;
-        this.createChurchDoor(doorX, bottomY - this.tile / 2);
-
-        const exitTrigger = this.add.rectangle(centerX + this.tile, bottomY, this.tile, this.tile * 2, 0x000000, 0);
-        this.physics.add.existing(exitTrigger, true);
+        this.createOrgans(1200, bottomY - this.tile / 2);
+        this.createChurchDoor(300, bottomY - this.tile / 2);
 
         this.createStar(300, bottomY - 2 * this.tile, null, "Bimanual coordination")
         this.createStar(600, bottomY - 2 * this.tile, null, "Sight-reading")
@@ -126,12 +119,11 @@ export default class ChurchScene extends BaseScene {
 
 
         this.add.image(300, y - 6 * this.tile, 'windowCheckered')
-            .setOrigin(0.5)
-            .setDepth(-1);
-        this.add.image(700, y - 6 * this.tile, 'windowCheckered')
+            .setScale(2)
             .setOrigin(0.5)
             .setDepth(-1);
         this.add.image(1100, y - 6 * this.tile, 'windowCheckered')
+            .setScale(2)
             .setOrigin(0.5)
             .setDepth(-1);
     }
@@ -139,24 +131,30 @@ export default class ChurchScene extends BaseScene {
 
     protected createChurchDoor(x: number, y: number) {
 
-        this.add.image(x, y + this.tile / 2 - 2 * this.tile, 'doorTop')
-            .setOrigin(1, 1)
-            .setScale(1.5, 1.5)
+        const dX = x;
+        const doorSizeFactor = 1.5;
+        const doorSize = this.tile * doorSizeFactor;
+
+
+        const doorKnob = this.add.image(dX, y - 2 * this.tile, 'doorKnob')
+            .setOrigin(0)
+            .setScale(2)
             .setDepth(0);
 
-        const doorKnob = this.add.image(x, y, 'doorKnob')
-            .setOrigin(1, 1)
-            .setScale(1.5, 1.5)
+        this.add.image(dX, doorKnob.y - doorKnob.displayHeight, 'doorTop')
+            .setOrigin(0)
+            .setScale(2)
             .setDepth(0);
 
         const doorTrigger = this.add.rectangle(
-            x,
-            y,
-            doorKnob.displayWidth,
-            doorKnob.displayHeight,
+            dX - this.tile / 2,
+            y - 3 * this.tile,
+            doorSize * 2,
+            doorSize * 2,
             0x000000,
             0
-        ).setOrigin(1, 1);
+        ).setOrigin(0);
+
         this.physics.add.existing(doorTrigger, true);
 
         const enterKey = this.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.E);

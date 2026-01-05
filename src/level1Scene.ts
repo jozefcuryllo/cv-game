@@ -21,12 +21,12 @@ export default class Level1Scene extends BaseScene {
     private speechBubble!: Phaser.GameObjects.Container;
 
     protected isRespawning = false;
-    protected worldWidth = 22600;
+    protected worldWidth = 0;
 
     protected playerHistory: PathPoint[] = [];
     protected historyLength: number = 20;
     protected catSpawned: boolean = false;
-    protected catArrivesAtX = 13000;
+    protected catArrivesAtX = 0;
 
     protected playlist: string[] = ['track1', 'track2'];
     private spikePositions: number[] = [];
@@ -55,7 +55,10 @@ export default class Level1Scene extends BaseScene {
 
         this.load.text('levelData', 'assets/level.txt');
 
-        this.load.spritesheet('cat', 'assets/sprites/catSprite/catspritesx4_no_bg.gif', { frameWidth: 84, frameHeight: 68 });
+        this.load.spritesheet('cat', 'assets/sprites/catSprite/catspritesx4_no_bg.gif',
+            { frameWidth: 90, frameHeight: 60 }
+        );
+
 
         this.load.image('grassMid', 'assets/sprites/PlatformerArtCompletePack/BasePack/Tiles/grassMid.png');
         this.load.image('grassCenter', 'assets/sprites/PlatformerArtCompletePack/BasePack/Tiles/grassCenter.png');
@@ -65,7 +68,6 @@ export default class Level1Scene extends BaseScene {
 
         this.load.image('box', 'assets/sprites/PlatformerArtCompletePack/BasePack/Tiles/box.png');
         this.load.image('boxAlt', 'assets/sprites/PlatformerArtCompletePack/BasePack/Tiles/boxAlt.png');
-
         this.load.image('cloud1', 'assets/sprites/PlatformerArtCompletePack/BasePack/Items/cloud1.png');
         this.load.image('cloud2', 'assets/sprites/PlatformerArtCompletePack/BasePack/Items/cloud2.png');
         this.load.image('cloud3', 'assets/sprites/PlatformerArtCompletePack/BasePack/Items/cloud3.png');
@@ -104,11 +106,7 @@ export default class Level1Scene extends BaseScene {
 
         const h = this.cameras.main.height;
 
-        this.cameras.main.setBackgroundColor('#6db3f2');
-        this.physics.world.setBounds(0, 0, this.worldWidth, h + 200, true, true, false);
-        this.cameras.main.setBounds(0, 0, this.worldWidth, h);
-
-        this.createPlayer(300, h - 200);
+        this.createPlayer(300, h - 400);
 
         this.ground = this.physics.add.staticGroup();
         this.boxes = this.physics.add.staticGroup();
@@ -121,7 +119,7 @@ export default class Level1Scene extends BaseScene {
             .filter((line: string) => !line.trim().startsWith('//'));
         const rowCount = lines.length;
         const colCount = Math.max(...lines.map((l: string) => l.length));
-
+        this.tile = h / rowCount;
         let milestonesIndex = 0;
         let starsIndex = 0;
         let spikesIndex = 0;
@@ -133,22 +131,21 @@ export default class Level1Scene extends BaseScene {
                 const char = lines[rowIndex][colIndex] || ' ';
                 const x = colIndex * this.tile;
                 const y = rowIndex * this.tile;
-                const adjustedY = y + 2 * this.tile;
 
                 if (char === 'M') {
                     this.createMilestone(x, milestonesIndex++);
                 } else if (char === '*') {
-                    this.createStar(x, adjustedY, starsIndex++);
+                    this.createStar(x, y, starsIndex++);
                 } else if (char === '#') {
-                    this.createBox(x, adjustedY);
-                }else if (char === 'T') {
+                    this.createBox(x, y);
+                } else if (char === 'T') {
                     this.createThought(x, thoughtsIndex++);
-                }else if (char === '=') {
-                    this.createGround(x, adjustedY);
+                } else if (char === '=') {
+                    this.createGround(x, y);
                 } else if (char === '^') {
                     const leftChar = colIndex > 0 ? lines[rowIndex][colIndex - 1] : ' ';
 
-                    this.createSpike(x, adjustedY);
+                    this.createSpike(x, y);
 
                     this.spikePositions.push(x);
 
@@ -161,7 +158,7 @@ export default class Level1Scene extends BaseScene {
 
                         const offsetX = ((groupLength - 1) * this.tile) / 2;
 
-                        this.createSpikeLabel(x + offsetX, adjustedY, spikesIndex++);
+                        this.createSpikeLabel(x + offsetX, y, spikesIndex++);
                     }
                 }
                 else if (char === 'C') {
@@ -170,18 +167,48 @@ export default class Level1Scene extends BaseScene {
                 else if (char === 'S') {
                     this.createSign(x, h - this.tile, infosIndex++);
                 }
+                else if (char === 'R') {
+                    this.createRecruiter(x, h - 4 * this.tile);
+                }
+                else if (char === 'F') {
+                    this.catArrivesAtX = x;
+                    this.createCat(x, h - this.tile);
+                }
+                this.worldWidth = x;
             }
         }
+
+        this.cameras.main.setBackgroundColor('#6db3f2');
+        this.physics.world.setBounds(0, 0, this.worldWidth, h + 200, true, true, false);
+        this.cameras.main.setBounds(0, 0, this.worldWidth, h);
 
         this.createTreesAndBushes();
         this.createClouds();
 
-        this.cat = this.physics.add.sprite(100, h - 200, 'cat');
-        this.cat.setFlipX(true);
+        this.physics.add.collider(this.player, this.ground);
+        this.physics.add.collider(this.player, this.boxes);
+        this.physics.add.collider(this.recruiter, this.ground);
+        this.physics.add.overlap(this.player, this.spikes, this.handleDeath, undefined, this);
+
+        this.playNextTrack();
+
+        this.events.on('wake', () => {
+            this.scoreText.setText(`Score: ${this.registry.get('score')}`);
+            this.refreshLabelDisplay();
+            this.playNextTrack();
+        });
+    }
+
+    protected createCat(x: number, y: number) {
+        this.cat = this.physics.add.sprite(x, y, 'cat')
+            .setOrigin(0, 0)
+            .setSize(90, 60)
+            .setFlipX(true)
+            .setScale(0.0)
+            .setAlpha(0.0)
+            .setDepth(101);
+
         (this.cat.body as Phaser.Physics.Arcade.Body)?.setAllowGravity(false);
-        this.cat.setScale(0);
-        this.cat.setAlpha(0);
-        this.cat.setDepth(101);
 
         this.catNameText = this.add.text(0, 0, 'Migotka!', {
             fontFamily: 'Arial',
@@ -194,21 +221,6 @@ export default class Level1Scene extends BaseScene {
         this.catNameText.setVisible(false);
 
         this.createCatAnimations();
-        this.createRecruiter(22000, h - 230);
-
-        this.physics.add.collider(this.player, this.ground);
-        this.physics.add.collider(this.player, this.boxes);
-        this.physics.add.collider(this.recruiter, this.ground);
-        this.physics.add.overlap(this.player, this.spikes, this.handleDeath, undefined, this);
-
-
-        this.playNextTrack();
-
-        this.events.on('wake', () => {
-            this.scoreText.setText(`Score: ${this.registry.get('score')}`);
-            this.refreshLabelDisplay();
-            this.playNextTrack();
-        });
     }
 
     protected createTreesAndBushes() {
@@ -289,11 +301,17 @@ export default class Level1Scene extends BaseScene {
             } else if (col === width) {
                 topKey = 'roofRedTopLeft';
                 midKey = 'roofRedLeft';
-
             }
 
-            this.add.image(roofX, roofBaseY - tile, topKey).setOrigin(0).setDepth(-1);
-            this.add.image(roofX, roofBaseY, midKey).setOrigin(0).setDepth(-1);
+            this.add.image(roofX, roofBaseY - tile, topKey)
+                .setOrigin(0)
+                .setDisplaySize(tile, tile)
+                .setDepth(-1);
+
+            this.add.image(roofX, roofBaseY, midKey)
+                .setOrigin(0)
+                .setDisplaySize(tile, tile)
+                .setDepth(-1);
         }
 
         for (let row = 0; row < height; row++) {
@@ -317,43 +335,44 @@ export default class Level1Scene extends BaseScene {
 
                 this.add.image(posX, posY, key)
                     .setOrigin(0)
+                    .setDisplaySize(tile, tile)
                     .setDepth(0);
             }
         }
 
         const dX = x + (doorCol * tile);
 
+        const doorSizeFactor = 1.5;
+        const doorSize = this.tile * doorSizeFactor;
 
-        this.add.image(dX + 2 * tile, y + tile / 2 - 2 * tile, 'doorTop')
-            .setOrigin(0.5)
-            .setScale(1.5, 1.5)
-            .setDepth(0);
-        this.add.image(dX + 2 * tile, y, 'doorKnob')
-            .setOrigin(0.5)
-            .setScale(1.5, 1.5)
-            .setDepth(0);
 
-        this.add.image(dX + 1, y - 3 * tile, 'windowCheckered')
-            .setOrigin(0.5)
+        const doorKnob = this.add.image(dX + 2 * tile, y - this.tile * 0.5, 'doorKnob')
+            .setOrigin(0)
+            .setDisplaySize(doorSize, doorSize)
             .setDepth(0);
 
-        this.add.image(dX + 2.5 * tile, y - 3 * tile, 'windowCheckered')
-            .setOrigin(0.5)
+        this.add.image(dX + 2 * tile, doorKnob.y - doorKnob.displayHeight, 'doorTop')
+            .setOrigin(0)
+            .setDisplaySize(doorSize, doorSize)
             .setDepth(0);
 
-        this.add.image(dX + 5 * tile, y - 3 * tile, 'windowCheckered')
-            .setOrigin(0.5)
-            .setDepth(0);
-
+        const windowPositions = [0, 4];
+        windowPositions.forEach(posOffset => {
+            this.add.image(dX + posOffset * tile, y - 3 * tile, 'windowCheckered')
+                .setOrigin(0)
+                .setDisplaySize(tile, tile)
+                .setDepth(0);
+        });
 
         const doorTrigger = this.add.rectangle(
             dX + 2 * tile,
-            y,
-            tile * 1,
-            tile * 2,
+            y - this.tile,
+            doorSize,
+            doorSize * 2,
             0x000000,
             0
-        );
+        ).setOrigin(0);
+
         this.physics.add.existing(doorTrigger, true);
         const enterKey = this.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.E);
         const upKey = this.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.UP);
@@ -366,9 +385,7 @@ export default class Level1Scene extends BaseScene {
             this.scene.switch('ChurchScene');
         };
 
-        doorTrigger
-            .setInteractive({ useHandCursor: true })
-            .setDepth(20);
+        doorTrigger.setInteractive({ useHandCursor: true }).setDepth(20);
 
         doorTrigger.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
             pointer.event.stopPropagation();
@@ -380,10 +397,7 @@ export default class Level1Scene extends BaseScene {
         this.physics.add.overlap(this.player, doorTrigger, () => {
             const eDown = enterKey && Phaser.Input.Keyboard.JustDown(enterKey);
             const upDown = upKey && Phaser.Input.Keyboard.JustDown(upKey);
-
-            if (eDown || upDown) {
-                goToChurch();
-            }
+            if (eDown || upDown) goToChurch();
         }, undefined, this);
     }
 
@@ -402,7 +416,7 @@ export default class Level1Scene extends BaseScene {
             }
         )
             .setOrigin(0.5, 0)
-            .setAlpha(0.3)
+            .setAlpha(0.4)
             .setDepth(-2);
 
         this.add.text(
@@ -425,22 +439,22 @@ export default class Level1Scene extends BaseScene {
     protected createGround(x: number, y: number) {
         const ground = this.ground.create(x, y, 'grassMid')
             .setDisplaySize(this.tile, this.tile)
-            .setScale(0.5)
-            .setTint(0xcccccc)
-            .setScale(1.0);
-        ground.body.setSize(this.tile, this.tile);
+            .setSize(this.tile, this.tile)
+            .setOrigin(0, 0);
         ground.refreshBody();
     }
 
     protected createBox(x: number, y: number) {
         this.boxes.create(x, y, "box")
             .setDisplaySize(this.tile, this.tile)
+            .setOrigin(0, 0)
             .refreshBody();
     }
 
     protected createSpike(x: number, y: number) {
         const spike = this.spikes.create(x, y, 'spikes')
-            .setDisplaySize(this.tile, this.tile);
+            .setDisplaySize(this.tile, this.tile)
+            .setOrigin(0, 0);
         spike.body.setSize(this.tile, this.tile);
         spike.refreshBody();
     }
@@ -449,7 +463,9 @@ export default class Level1Scene extends BaseScene {
         const mySpike = predefinedSpikes[index];
         if (!mySpike) return;
 
-        const label = this.add.text(x, y - 60,
+        const labelX = x + (this.tile / 2);
+
+        const label = this.add.text(labelX, y - 60,
             mySpike,
             {
                 fontSize: '20px',
@@ -504,8 +520,13 @@ export default class Level1Scene extends BaseScene {
 
             let oldPosition = this.playerHistory.pop();
             if (oldPosition) {
-                this.cat.setPosition(oldPosition.x, oldPosition.y + this.tile);
-                this.cat.setFlipX(!oldPosition.flipX);
+
+                this.cat
+                    .setPosition(oldPosition.x, oldPosition.y + this.player.displayHeight)
+                    .setFlipX(!oldPosition.flipX)
+                    .setOrigin(0, 1);
+
+
                 this.matchCatAnimation(oldPosition.anim);
             }
         }
@@ -568,24 +589,25 @@ export default class Level1Scene extends BaseScene {
         if (this.anims.exists('cat_idle')) return;
         this.anims.create({
             key: 'cat_idle',
-            frames: this.anims.generateFrameNumbers('cat', { start: 0, end: 2 }),
-            frameRate: 2,
-            repeat: -1
+            frames: this.anims.generateFrameNumbers('cat', { start: 0, end: 3 }),
+            frameRate: 1,
+            repeat: -1,
         });
 
         this.anims.create({
             key: 'cat_walk',
-            frames: this.anims.generateFrameNumbers('cat', { start: 6, end: 8 }),
+            frames: this.anims.generateFrameNumbers('cat', { start: 6, end: 10 }),
             frameRate: 3,
             repeat: -1
         });
 
         this.anims.create({
             key: 'cat_jump',
-            frames: [{ key: 'cat', frame: 7 }],
+            frames: [{ key: 'cat', frame: 12 }],
             frameRate: 3,
         });
     }
+
     protected matchCatAnimation(playerAnimKey: string) {
         if (playerAnimKey.includes('walk') || playerAnimKey.includes('run')) {
             this.cat.play('cat_walk', true);
@@ -612,7 +634,7 @@ export default class Level1Scene extends BaseScene {
 
 
         this.recruiter = this.physics.add.sprite(x, y, 'recruiter')
-            .setScale(2.5);
+            .setScale(3.5);
 
         (this.recruiter.body as Phaser.Physics.Arcade.Body)!.setAllowGravity(true);
 
@@ -660,7 +682,7 @@ export default class Level1Scene extends BaseScene {
     }
 
     protected showSpeechBubble() {
-        const bx = this.recruiter.x - 50;
+        const bx = this.recruiter.x - 90;
         const by = this.recruiter.y - 120;
 
         const bubble = this.add.graphics();
@@ -674,27 +696,32 @@ export default class Level1Scene extends BaseScene {
             fontStyle: 'bold'
         }).setOrigin(0.5);
 
-        this.speechBubble = this.add.container(bx, by, [bubble, text]);
-        this.speechBubble.setAlpha(0);
+        this.speechBubble = this.add.container(bx, by, [bubble, text])
+            .setAlpha(0);
 
         this.tweens.add({
             targets: this.speechBubble,
             alpha: 1,
-            y: by - 20,
+            y: by - 70,
             duration: 2000,
             onComplete: () => {
-                if (this.music) {
-                    this.music.stop();
-                    this.music.destroy();
-                }
+                this.time.delayedCall(2000, () => {
+                    if (this.music) {
+                        this.music.stop();
+                        this.music.destroy();
+                    }
 
-                this.registry.set('score', 0);
-                this.registry.set('labels', []);
+                    this.registry.set('score', 0);
+                    this.registry.set('labels', []);
+                    this.historyLength = 0;
+                    this.playerHistory = [];
 
-                this.scene.remove('ChurchScene');
-                this.scene.remove('Level1Scene');
-                
-                this.scene.start('FinalScene');
+                    this.scene.stop('ChurchScene');
+                    this.scene.stop();
+
+                    this.scene.start('FinalScene');
+                });
+
             }
         });
     }

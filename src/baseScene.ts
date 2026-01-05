@@ -52,6 +52,8 @@ export abstract class BaseScene extends Phaser.Scene {
 
         const w = this.cameras.main.width;
         const margin = 20;
+        
+        this.input.addPointer(2);
 
         const muteBtn = this.add.text(w - margin, margin, this.sound.mute ? '🔇' : '🔊', {
             fontSize: '32px',
@@ -107,32 +109,51 @@ export abstract class BaseScene extends Phaser.Scene {
         const w = this.cameras.main.width;
         const h = this.cameras.main.height;
 
-        const createZone = (x: number, y: number, width: number, height: number, key: string) => {
+        const createZone = (x: number, y: number, width: number, height: number, key: keyof typeof this.touchState) => {
             const zone = this.add.zone(x, y, width, height)
                 .setOrigin(0)
                 .setInteractive()
                 .setScrollFactor(0)
                 .setDepth(10);
 
-            zone.on('pointerdown', () => { this.touchState[key] = true; });
-            zone.on('pointerup', () => { this.touchState[key] = false; });
-            zone.on('pointerout', () => { this.touchState[key] = false; });
+            zone.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
+                this.touchState[key] = true;
+            });
+
+            zone.on('pointermove', (pointer: Phaser.Input.Pointer) => {
+                if (pointer.isDown) {
+                    this.touchState[key] = true;
+                }
+            });
+
+            zone.on('pointerup', (pointer: Phaser.Input.Pointer) => {
+                this.touchState[key] = false;
+            });
+
+            zone.on('pointerout', (pointer: Phaser.Input.Pointer) => {
+                this.touchState[key] = false;
+            });
         };
 
-        createZone(0, 0, w, h * 0.25, 'up');
-        createZone(0, h * 0.75, w, h * 0.25, 'down');
-        createZone(0, h * 0.25, w * 0.5, h * 0.5, 'left');
-        createZone(w * 0.5, h * 0.25, w * 0.5, h * 0.5, 'right');
+        createZone(0, 0, w, h * 0.3, 'up');
+        createZone(0, h * 0.7, w, h * 0.3, 'down');
+        createZone(0, h * 0.3, w * 0.5, h * 0.4, 'left');
+        createZone(w * 0.5, h * 0.3, w * 0.5, h * 0.4, 'right');
     }
 
     protected createPlayer(x: number, y: number) {
-        this.player = this.physics.add.sprite(x, y, 'player').setScale(3);
-        this.player.setCollideWorldBounds(true);
-        this.player.setGravity(0, 1200);
-        this.player.setDragX(1500);
-        this.player.setMaxVelocity(400, 1000);
-        this.player.body?.setSize(12, 64);
-        this.player.setDepth(100);
+        this.player = this.physics.add.sprite(x, y, 'player')
+            .setScale(4.5)
+            .setCollideWorldBounds(true)
+            .setGravity(0, 1200)
+            .setDragX(1500)
+            .setMaxVelocity(400, 1000)
+            .setDepth(100)
+            .setOrigin(0, 0)
+            .setSize(14, 48);
+
+        const heightDifference = this.player.height - 48;
+        this.player.setOffset(8, heightDifference);
 
         this.cameras.main.startFollow(this.player, true, 0.1, 0.1);
 
@@ -306,7 +327,7 @@ export abstract class BaseScene extends Phaser.Scene {
         const text = predefinedInfos[index] ?? '';
 
         this.add.image(x, y, 'sign')
-            .setScale(1)
+            .setScale(1.5)
             .setOrigin(1, 1)
             .setDepth(0);
 
@@ -433,26 +454,26 @@ export abstract class BaseScene extends Phaser.Scene {
     protected createStar(x: number, y: number, index: number | null, text: string | null = null) {
 
         const _text = index !== null ? predefinedStars[index] ?? "" : text ?? ""
-        const star = this.stars.create(x, y, 'star')
-            .setScale(1.5);
+        const star = this.stars
+            .create(x, y, 'star')
+            .setSize(30, 30)
+            .refreshBody();
 
-        star.body.setSize(this.tile / 2, this.tile / 2);
-        star.refreshBody();
-        const label = this.add.text(x, y - 50, _text,
+        const label = this.add.text(x, y - 60, _text,
             {
-                fontSize: '18px',
+                fontSize: '22px',
                 color: '#fff',
                 stroke: '#000',
                 strokeThickness: 0
             })
             .setOrigin(0.5)
-            .setAlpha(0.6);
+            .setAlpha(0.7);
         star.setData('label', label);
 
         this.tweens.add({
             targets: star,
             y: star.y - 15,
-            scale: { from: 1, to: 1.2 },
+            scale: { from: 1.8, to: 2.0 },
             duration: 1500,
             ease: 'Sine.easeInOut',
             yoyo: true,
@@ -558,14 +579,14 @@ export abstract class BaseScene extends Phaser.Scene {
 
     protected createThought(x: number, index: number) {
         const text = predefinedThoughts[index] ?? '';
-
+        const h = this.cameras.main.height;
         const trigger = this.add.rectangle(x, this.player.y, 50, 2000, 0xffffff, 0);
-        this.physics.add.existing(trigger, true);
 
+        this.physics.add.existing(trigger, true);
         this.physics.add.overlap(this.player, trigger, () => {
             trigger.destroy();
 
-            const spawnY = this.player.y - 180;
+            const spawnY = h - 4 * this.tile;
             const thoughtContainer = this.add.container(x, spawnY).setDepth(200).setAlpha(0);
 
             const header = this.add.text(0, 0, "INTERNAL MONOLOGUE", {
